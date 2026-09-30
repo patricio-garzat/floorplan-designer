@@ -58,6 +58,8 @@
     window: 'Acerca la ventana a una pared y haz clic',
     furn: 'Haz clic para colocar · R para girar · Shift para colocar varios · Esc para cancelar',
     measure: 'Haz clic en dos puntos para medir la distancia',
+    addarea: 'Arrastra un rectángulo para AGREGAR ese espacio a la casa (puede salirse de la base actual) · Esc para cancelar',
+    push: 'Arrastra un muro exterior hacia afuera para ampliar la casa, o hacia adentro para reducirla · Esc para cancelar',
     shape: 'Haz clic en cada esquina de la casa (las líneas salen rectas) · clic en el primer punto o Enter para cerrar · Retroceso quita el último · Esc cancela',
     cut: 'Arrastra un rectángulo sobre la base para recortarla (esquinas, patios…) · Esc para cancelar',
     erase: 'Pon el cursor sobre cualquier muro (de la casa o de una habitación) y arrastra hasta donde quieras borrarlo · Esc para terminar',
@@ -72,7 +74,7 @@
   function syncTools() {
     document.querySelectorAll('#toolbar .tool').forEach((b) => {
       const id = b.dataset.tool;
-      b.classList.toggle('on', openFly ? openFly === id : st.tool === id || (id === 'base' && (st.tool === 'cut' || st.tool === 'erase' || st.tool === 'shape')));
+      b.classList.toggle('on', openFly ? openFly === id : st.tool === id || (id === 'base' && (st.tool === 'cut' || st.tool === 'erase' || st.tool === 'shape' || st.tool === 'addarea' || st.tool === 'push')));
     });
   }
 
@@ -108,6 +110,8 @@
       const P = st.project, nc = (P.space.cuts || []).length, ng = (P.space.gaps || []).length;
       flyEl.innerHTML = `<div class="fly-head"><h3>Forma de la casa</h3><button class="x" data-close>${FP.icon('close', 16)}</button></div>
         <div class="list">
+          <button class="row" data-base="addarea"><span class="opi">${FP.icon('room', 22)}</span><span>Agregar un área<br><small>Amplía la casa con otro espacio (ala, cuarto extra…)</small></span></button>
+          <button class="row" data-base="push"><span class="opi">${FP.icon('wall', 22)}</span><span>Mover un muro exterior<br><small>Arrástralo para hacer la casa más grande o más chica</small></span></button>
           <button class="row" data-base="shape"><span class="opi">${FP.icon('wall', 22)}</span><span>Dibujar la forma con líneas<br><small>Traza el contorno esquina por esquina (L, U, T…)</small></span></button>
           <button class="row" data-base="cut"><span class="opi">${FP.icon('base', 22)}</span><span>Recortar un área<br><small>Esquinas, patios, forma en L…</small></span></button>
           <button class="row" data-base="erase"><span class="opi">${FP.icon('wall', 22)}</span><span>Borrar un tramo de muro<br><small>De la casa o de una habitación</small></span></button>

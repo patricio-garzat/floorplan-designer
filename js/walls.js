@@ -73,6 +73,47 @@
     /** ¿El punto cae dentro de la huella de la casa? */
     inside(project, x, y) { return Walls.footprint(project).cells.some((c) => x >= c.x - 1e-6 && x <= c.x + c.w + 1e-6 && y >= c.y - 1e-6 && y <= c.y + c.h + 1e-6); },
 
+    /** Recortes (complemento) a partir de celdas rellenas, dentro de la caja W×H. */
+    cutsFromCells(cells, W, H) {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      const xs = uniq([0, W].concat(...cells.map((c) => [r2(c.x), r2(c.x + c.w)]))), ys = uniq([0, H].concat(...cells.map((c) => [r2(c.y), r2(c.y + c.h)])));
+      const nx = xs.length - 1, ny = ys.length - 1, runs = [];
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
+        if (cells.some((c) => cx > c.x && cx < c.x + c.w && cy > c.y && cy < c.y + c.h)) continue;
+        let k = i;
+        while (k + 1 < nx) { const mx = (xs[k + 1] + xs[k + 2]) / 2; if (cells.some((c) => mx > c.x && mx < c.x + c.w && cy > c.y && cy < c.y + c.h)) break; k++; }
+        runs.push({ i0: i, i1: k, j0: j, j1: j }); i = k;
+      }
+      const cuts = [];
+      runs.forEach((r) => { const m = cuts.find((c) => c.i0 === r.i0 && c.i1 === r.i1 && c.j1 === r.j0 - 1); if (m) m.j1 = r.j1; else cuts.push(Object.assign({}, r)); });
+      return cuts.map((c) => ({ x: xs[c.i0], y: ys[c.j0], w: r2(xs[c.i1 + 1] - xs[c.i0]), h: r2(ys[c.j1 + 1] - ys[c.j0]) }));
+    },
+    /** Fija la base a partir de celdas: la caja se ajusta a lo que ocupan y lo demás queda como recorte. */
+    setFromCells(space, cells) {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      space.w = r2(Math.max(...cells.map((c) => c.x + c.w))); space.h = r2(Math.max(...cells.map((c) => c.y + c.h)));
+      space.cuts = Walls.cutsFromCells(cells, space.w, space.h);
+    },
+    /** Suma un rectángulo a la base (la amplía). */
+    addArea(project, rect) {
+      if (rect.w < 0.3 || rect.h < 0.3) return false;
+      Walls.setFromCells(project.space, Walls.footprint(project).cells.concat([rect]));
+      return true;
+    },
+    /** Quita un rectángulo de la base (la recorta). Devuelve false si no quedaría nada. */
+    removeArea(project, rect) {
+      const out = [];
+      Walls.footprint(project).cells.forEach((a) => {
+        const x0 = Math.max(a.x, rect.x), x1 = Math.min(a.x + a.w, rect.x + rect.w), y0 = Math.max(a.y, rect.y), y1 = Math.min(a.y + a.h, rect.y + rect.h);
+        if (x1 - x0 < 1e-6 || y1 - y0 < 1e-6) { out.push(a); return; }
+        [{ x: a.x, y: a.y, w: a.w, h: y0 - a.y }, { x: a.x, y: y1, w: a.w, h: a.y + a.h - y1 }, { x: a.x, y: y0, w: x0 - a.x, h: y1 - y0 }, { x: x1, y: y0, w: a.x + a.w - x1, h: y1 - y0 }].forEach((q) => { if (q.w > 0.005 && q.h > 0.005) out.push(q); });
+      });
+      if (!out.length || out.reduce((s, c) => s + c.w * c.h, 0) < 1) return false;
+      Walls.setFromCells(project.space, out);
+      return true;
+    },
+
     /** Polígono de ángulos rectos (puntos en metros, ≥ 0) -> { w, h, cuts }: la base es la caja que lo contiene y los recortes son lo que queda fuera. */
     shapeToSpace(pts) {
       if (!pts || pts.length < 4) return null;

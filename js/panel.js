@@ -112,7 +112,8 @@
         <label class="fld"><span>Ancho</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space="w" value="${P.space.w.toFixed(2)}" step="0.5" min="2" max="60"><em>m</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>
         <label class="fld"><span>Largo</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space="h" value="${P.space.h.toFixed(2)}" step="0.5" min="2" max="60"><em>m</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>
         ${P.kind === 'departamento' && !P.level ? `<label class="fld"><span>Piso en el edificio</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space-fl value="${P.space.floorNo || 5}" step="1" min="1" max="60"><em>°</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>` : ''}
-        <div class="fld"><span>Forma de la base</span><span class="in wide" style="gap:6px;justify-content:flex-end"><button class="pbtn" data-act="drawshape" title="Dibuja el contorno con líneas rectas">Dibujar</button>${(P.space.cuts || []).length || (P.space.gaps || []).length ? '<button class="pbtn" data-act="resetbase">Restaurar</button>' : ''}</span></div>
+        <div class="fld"><span>Forma de la base</span></div>
+        <div class="pbtns" style="margin:0 0 10px"><button class="pbtn" data-act="addarea" title="Agrega otro espacio a la casa">+ Área</button><button class="pbtn" data-act="pushwall" title="Mueve un muro exterior">Mover muro</button><button class="pbtn" data-act="drawshape" title="Dibuja el contorno con líneas rectas">Dibujar</button>${(P.space.cuts || []).length || (P.space.gaps || []).length ? '<button class="pbtn" data-act="resetbase">Restaurar</button>' : ''}</div>
         ${P.level ? '<div class="fld"><span>Nivel de abajo</span><button class="pbtn" data-act="matchbelow">Copiar su forma</button></div>' : ''}
         <div class="fld"><span>En habitaciones</span><b>${U.fmt(s.roomsArea)} m²</b></div>
         <label class="fld"><span>Piso de la base</span><span class="in wide"><select data-space-floor>${FP.Rooms.FLOORS.reduce((h, f) => h + `<option value="${f.id}"${P.space.floor === f.id ? ' selected' : ''}>${f.name}</option>`, `<option value=""${P.space.floor ? '' : ' selected'}>Concreto (por defecto)</option>`)}</select></span></label>
@@ -264,6 +265,8 @@
     else if (a === 'resetbase') { delete st.project.space.cuts; delete st.project.space.gaps; FP.commit(); FP.render(); render(); }
     else if (a === 'center') FP.Actions.centerOnWall();
     else if (a === 'drawshape') { FP.setTool('shape'); }
+    else if (a === 'addarea') { FP.setTool('addarea'); }
+    else if (a === 'pushwall') { FP.setTool('push'); }
     else if (a === 'matchbelow') { const P = st.project, B = FP.Levels.view(P, P.level - 1); P.space.w = B.space.w; P.space.h = B.space.h; P.space.cuts = U.clone(B.space.cuts || []); P.space.gaps = []; FP.commit(); FP.render(); render(); }
     else if (a === 'hinge') FP.Actions.flipHinge();
     else if (a === 'mirror') FP.Actions.mirror();

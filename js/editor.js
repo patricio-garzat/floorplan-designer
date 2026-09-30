@@ -12,6 +12,7 @@
   const pointers = new Map();
 
   const thr = () => 10 / st.view.s;
+  let pushHover = null;
   let shapePts = []; // contorno de la casa que se está dibujando con líneas
   const snapOn = (e) => st.snap && !(e && e.altKey);
 
@@ -239,6 +240,31 @@
     return t;
   };
   const gapOf = (h, a, b) => (h.horiz ? { x1: Math.min(a, b), y1: h.c, x2: Math.max(a, b), y2: h.c } : { x1: h.c, y1: Math.min(a, b), x2: h.c, y2: Math.max(a, b) });
+  const areaRect = (a, b) => {
+    const x1 = U.clamp(Math.min(a.x, b.x), 0, 80), x2 = U.clamp(Math.max(a.x, b.x), 0, 80), y1 = U.clamp(Math.min(a.y, b.y), 0, 80), y2 = U.clamp(Math.max(a.y, b.y), 0, 80);
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+  };
+  /** Muro exterior más cercano (tramo completo) con su lado de afuera, para estirarlo o encogerlo. */
+  function pushSeg(w) {
+    const P = st.project;
+    let best = null;
+    FP.Walls.outline(P).forEach((g) => {
+      const d = U.distSeg(w.x, w.y, g.x1, g.y1, g.x2, g.y2);
+      if (d < 0.45 && (!best || d < best.d)) best = { d, g };
+    });
+    if (!best) return null;
+    const g = best.g, horiz = Math.abs(g.y1 - g.y2) < 1e-6, a = horiz ? Math.min(g.x1, g.x2) : Math.min(g.y1, g.y2), b = horiz ? Math.max(g.x1, g.x2) : Math.max(g.y1, g.y2), c = horiz ? g.y1 : g.x1;
+    const mid = (a + b) / 2, inside = horiz ? FP.Walls.inside(P, mid, c + 0.06) : FP.Walls.inside(P, c + 0.06, mid);
+    return { horiz, a, b, c, out: inside ? -1 : 1 }; // out: hacia dónde queda "afuera" sobre el eje perpendicular
+  }
+  const pushDelta = (d, w, on) => {
+    const s = d.seg, raw = ((s.horiz ? w.y : w.x) - d.start) * s.out;
+    return on ? Math.round(raw / FP.Snap.GRID) * FP.Snap.GRID : raw;
+  };
+  const pushRect = (s, delta) => {
+    const L = Math.abs(delta), lo = delta > 0 ? (s.out > 0 ? s.c : s.c - L) : (s.out > 0 ? s.c - L : s.c);
+    return s.horiz ? { x: s.a, y: lo, w: s.b - s.a, h: L } : { x: lo, y: s.a, w: L, h: s.b - s.a };
+  };
   const cutRect = (a, b) => {
     const P = st.project, x1 = U.clamp(Math.min(a.x, b.x), 0, P.space.w), x2 = U.clamp(Math.max(a.x, b.x), 0, P.space.w), y1 = U.clamp(Math.min(a.y, b.y), 0, P.space.h), y2 = U.clamp(Math.max(a.y, b.y), 0, P.space.h);
     return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
@@ -307,9 +333,13 @@
       const p = shapePoint(w, e), f = shapePts[0], l = shapePts[shapePts.length - 1];
       if (f && shapePts.length >= 3 && Math.hypot(w.x - f.x, w.y - f.y) < 14 / st.view.s) finishShape();
       else if (!l || Math.abs(p.x - l.x) > 1e-6 || Math.abs(p.y - l.y) > 1e-6) shapePts.push(p);
-    } else if (t === 'cut') {
+    } else if (t === 'push') {
+      const seg = pushSeg(w);
+      if (seg) drag = { type: 'push', seg, start: seg.horiz ? w.y : w.x, delta: 0, sx: e.clientX, sy: e.clientY, moved: false };
+      else FP.toast('Acércate a un muro exterior');
+    } else if (t === 'cut' || t === 'addarea') {
       const p = FP.Snap.point(w, thr(), snapOn(e));
-      drag = { type: 'cut', a: p, b: p, sx: e.clientX, sy: e.clientY, moved: false };
+      drag = { type: 'cut', mode: t, a: p, b: p, sx: e.clientX, sy: e.clientY, moved: false };
     } else if (t === 'erase') {
       const h = nearestOutline(w);
       if (h) { const a = snapAlong(h, h.horiz ? w.x : w.y, snapOn(e)); drag = { type: 'erase', h, a, b: a, sx: e.clientX, sy: e.clientY, moved: false }; }
@@ -392,7 +422,8 @@
     } else if (PLACE.includes(t)) { updateGhost(w, e); cur = 'crosshair'; }
     else if (t === 'wall') { const p = wallPoint(w, e, wallStart); cursorW = p; cur = 'crosshair'; }
     else if (t === 'measure') { const p = wallPoint(w, e, null); cursorW = p; cur = 'crosshair'; }
-    else if (t === 'cut') { cursorW = FP.Snap.point(w, thr(), snapOn(e)); cur = 'crosshair'; }
+    else if (t === 'cut' || t === 'addarea') { cursorW = FP.Snap.point(w, thr(), snapOn(e)); cur = 'crosshair'; }
+    else if (t === 'push') { pushHover = pushSeg(w); cur = pushHover ? (pushHover.horiz ? 'ns-resize' : 'ew-resize') : 'not-allowed'; }
     else if (t === 'shape') { cursorW = shapePoint(w, e); cur = 'crosshair'; }
     else if (t === 'erase') { const h = nearestOutline(w); eraseHover = h ? { h, t: snapAlong(h, h.horiz ? w.x : w.y, snapOn(e)) } : null; cur = h ? 'crosshair' : 'not-allowed'; }
     svg.style.cursor = cur;
@@ -507,6 +538,11 @@
         requestRender(false);
         return;
       }
+      case 'push':
+        d.delta = pushDelta(d, w, on);
+        if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 4) d.moved = true;
+        requestRender(false);
+        return;
       case 'cut':
         d.b = FP.Snap.point(w, thr(), on);
         if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 6) d.moved = true;
@@ -561,13 +597,20 @@
       case 'measure':
         if (d.moved) finishMeasure(d.a, d.b); else measureStart = d.a;
         break;
+      case 'push': {
+        if (!d.moved || Math.abs(d.delta) < 0.05) break;
+        const r = pushRect(d.seg, d.delta);
+        if (d.delta > 0 ? FP.Walls.addArea(P, r) : FP.Walls.removeArea(P, r)) { FP.commit(); fit(); FP.toast(d.delta > 0 ? 'Muro movido: ' + U.fmt(d.delta) + ' m más' : 'Muro movido: ' + U.fmt(-d.delta) + ' m menos'); }
+        else FP.toast('No se puede dejar la casa sin superficie');
+        break;
+      }
       case 'cut': {
         if (!d.moved) break;
-        const r = cutRect(d.a, d.b), Ps = P.space;
-        if (r.w < 0.5 || r.h < 0.5) { FP.toast('El recorte es muy pequeño'); break; }
-        if (r.w * r.h > Ps.w * Ps.h * 0.85) { FP.toast('Deja al menos parte de la base'); break; }
-        Ps.cuts = (Ps.cuts || []).concat([r]);
+        const add = d.mode === 'addarea', r = add ? areaRect(d.a, d.b) : cutRect(d.a, d.b);
+        if (r.w < 0.5 || r.h < 0.5) { FP.toast(add ? 'El área es muy pequeña' : 'El recorte es muy pequeño'); break; }
+        if (!(add ? FP.Walls.addArea(P, r) : FP.Walls.removeArea(P, r))) { FP.toast('Deja al menos parte de la base'); break; }
         FP.commit();
+        if (add) fit();
         FP.setTool('select');
         break;
       }
@@ -683,13 +726,25 @@
       pts.forEach((q, i) => { s += `<circle cx="${n(q.x)}" cy="${n(q.y)}" r="${n((i === 0 && pts.length >= 3 ? (near ? 9 : 6) : 4) * px)}" fill="${i === 0 ? (near ? ACC : '#fff') : ACC}" stroke="${ACC}" stroke-width="${n(2 * px)}"/>`; });
       if (cur) s += `<circle cx="${n(cur.x)}" cy="${n(cur.y)}" r="${n(5 * px)}" fill="none" stroke="${ACC}" stroke-width="${n(1.5 * px)}"/>`;
     }
-    if (st.tool === 'cut') {
+    if (st.tool === 'push') {
+      const sg = drag && drag.type === 'push' ? drag.seg : pushHover;
+      if (sg) {
+        const x1 = sg.horiz ? sg.a : sg.c, y1 = sg.horiz ? sg.c : sg.a, x2 = sg.horiz ? sg.b : sg.c, y2 = sg.horiz ? sg.c : sg.b;
+        s += `<line x1="${n(x1)}" y1="${n(y1)}" x2="${n(x2)}" y2="${n(y2)}" stroke="${ACC}" stroke-opacity=".55" stroke-width="0.3" stroke-linecap="square"/>`;
+        if (drag && drag.type === 'push' && Math.abs(drag.delta) >= 0.05) {
+          const r = pushRect(sg, drag.delta), grow = drag.delta > 0, col = grow ? '#1f9d55' : '#d92d20';
+          s += `<rect x="${n(r.x)}" y="${n(r.y)}" width="${n(r.w)}" height="${n(r.h)}" fill="${grow ? 'rgba(31,157,85,.16)' : 'rgba(217,45,32,.14)'}" stroke="${col}" stroke-width="${n(1.5 * px)}" stroke-dasharray="${n(6 * px)} ${n(4 * px)}"/>`;
+          s += `<text x="${n(r.x + r.w / 2)}" y="${n(r.y + r.h / 2)}" text-anchor="middle" font-size="${n(12 * px)}" font-weight="600" fill="${col}" font-family="${FP.FONT}">${grow ? '+' : '−'}${U.fmt(Math.abs(drag.delta))} m</text>`;
+        }
+      }
+    } else if (st.tool === 'cut' || st.tool === 'addarea') {
+      const add = st.tool === 'addarea', col = add ? '#1f9d55' : '#d92d20', fill = add ? 'rgba(31,157,85,.16)' : 'rgba(217,45,32,.14)';
       const a = drag && drag.type === 'cut' ? drag.a : null;
       if (a) {
-        const r = cutRect(a, drag.b);
-        s += `<rect x="${n(r.x)}" y="${n(r.y)}" width="${n(r.w)}" height="${n(r.h)}" fill="rgba(217,45,32,.14)" stroke="#d92d20" stroke-width="${n(1.5 * px)}" stroke-dasharray="${n(6 * px)} ${n(4 * px)}"/>`;
-        s += `<text x="${n(r.x + r.w / 2)}" y="${n(r.y + r.h / 2)}" text-anchor="middle" font-size="${n(12 * px)}" font-weight="600" fill="#d92d20" font-family="${FP.FONT}">${U.fmt(r.w)} × ${U.fmt(r.h)} m</text>`;
-      } else s += `<circle cx="${n(cursorW.x)}" cy="${n(cursorW.y)}" r="${n(5 * px)}" fill="none" stroke="#d92d20" stroke-width="${n(1.5 * px)}"/>`;
+        const r = add ? areaRect(a, drag.b) : cutRect(a, drag.b);
+        s += `<rect x="${n(r.x)}" y="${n(r.y)}" width="${n(r.w)}" height="${n(r.h)}" fill="${fill}" stroke="${col}" stroke-width="${n(1.5 * px)}" stroke-dasharray="${n(6 * px)} ${n(4 * px)}"/>`;
+        s += `<text x="${n(r.x + r.w / 2)}" y="${n(r.y + r.h / 2)}" text-anchor="middle" font-size="${n(12 * px)}" font-weight="600" fill="${col}" font-family="${FP.FONT}">${U.fmt(r.w)} × ${U.fmt(r.h)} m</text>`;
+      } else s += `<circle cx="${n(cursorW.x)}" cy="${n(cursorW.y)}" r="${n(5 * px)}" fill="none" stroke="${col}" stroke-width="${n(1.5 * px)}"/>`;
     } else if (st.tool === 'erase') {
       if (drag && drag.type === 'erase') {
         const g = gapOf(drag.h, drag.a, drag.b);
@@ -747,7 +802,7 @@
       ['live', 'change', 'render', 'restore', 'mode'].forEach((ev) => FP.on(ev, () => { if (ev === 'restore') drag = null; requestRender(true); }));
       FP.on('project', () => { ghost = null; guides = []; drag = null; wallStart = measureStart = null; setTimeout(fit, 0); });
       FP.on('selection', () => requestRender(false));
-      FP.on('tool', () => { shapePts = []; eraseHover = null; ghost = null; guides = []; ghostRot = 0; wallStart = measureStart = null; drag = null; snapDot = null; svg.style.cursor = 'default'; requestRender(false); });
+      FP.on('tool', () => { pushHover = null; shapePts = []; eraseHover = null; ghost = null; guides = []; ghostRot = 0; wallStart = measureStart = null; drag = null; snapDot = null; svg.style.cursor = 'default'; requestRender(false); });
     },
     fit, zoomBy, viewCenter, cancel,
     setSpace(v) { spaceDown = v; if (svg) svg.style.cursor = v ? 'grab' : 'default'; },
