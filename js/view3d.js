@@ -465,6 +465,7 @@
   }
   function setInterior(on) {
     ceilings.forEach((c) => { c.castShadow = on; });
+    fixtures.forEach((f) => { f.visible = on; });   // focos solo al recorrer la casa; la luz se queda siempre
     if (ceilAO) ceilAO.visible = on;
   }
   function applyLight(name, P) {
@@ -861,7 +862,7 @@
   }
 
   function buildRooms(P, group) {
-    ceilings = [];
+    ceilings = []; fixtures = [];
     dynamic = { lamps: [], emis: [], halos: [] };
     const rooms = P.rooms.slice().sort((a, b) => b.w * b.h - a.w * a.h);
     rooms.forEach((r, i) => {
@@ -876,10 +877,10 @@
       dynamic.emis.push(em);
       for (let a = 0; a < Math.min(cols, 4); a++) for (let b = 0; b < Math.min(rws, 4); b++) {
         const dx = r.x + (r.w * (a + 0.5)) / Math.min(cols, 4), dz = r.y + (r.h * (b + 0.5)) / Math.min(rws, 4);
-        group.add(mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.012, 20), em, dx, WALL_H - 0.012, dz, false, false));
+        fixtures.push(group.add(mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.012, 20), em, dx, WALL_H - 0.012, dz, false, false)) && group.children[group.children.length - 1]);
         const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex(), color: 0xffe2b0, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.1 }));
         halo.position.set(dx, WALL_H - 0.06, dz); halo.scale.set(0.55, 0.55, 1);
-        group.add(halo); dynamic.halos.push(halo);
+        group.add(halo); dynamic.halos.push(halo); fixtures.push(halo);
       }
       // luces reales repartidas por el techo (2-4 según el tamaño); hay un tope global para no saturar la GPU
       const area = r.w * r.h, want = area < 9 ? 1 : area < 22 ? 2 : area < 40 ? 3 : 4;
@@ -909,7 +910,7 @@
       for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) {
         const x = c.x + (c.w * (a + 0.5)) / nx, z = c.y + (c.h * (b + 0.5)) / ny;
         if (inRoom(x, z)) continue;
-        group.add(mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.012, 20), em2, x, WALL_H - 0.012, z, false, false));
+        group.add(mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.012, 20), em2, x, WALL_H - 0.012, z, false, false)); fixtures.push(group.children[group.children.length - 1]);
         if (extra < 3 && dynamic.lamps.length < 16 && (a + b) % 2 === 0) {
           const pl = new THREE.PointLight(0xffffff, 1, 6, 1.7);
           pl.position.set(x, WALL_H - 0.35, z);
@@ -920,10 +921,11 @@
         }
       }
     });
+    setInterior(typeof walk !== 'undefined' && walk.on);
   }
 
   /* ---------- oclusión ambiental falsa (contacto muro-piso, bajo muebles, techo) ---------- */
-  let ceilings = [], ceilAO = null;
+  let ceilings = [], ceilAO = null, fixtures = [];
   const aoGrad = () => T('aoGrad', () => {
     const c = document.createElement('canvas'); c.width = 4; c.height = 64;
     const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 64);
