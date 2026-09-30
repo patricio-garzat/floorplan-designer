@@ -49,6 +49,38 @@
     },
     outline: (project) => Walls.footprint(project).outline,
 
+    /** Polígono de ángulos rectos (puntos en metros, ≥ 0) -> { w, h, cuts }: la base es la caja que lo contiene y los recortes son lo que queda fuera. */
+    shapeToSpace(pts) {
+      if (!pts || pts.length < 4) return null;
+      const r2 = (v) => Math.round(v * 100) / 100, W = r2(Math.max(...pts.map((p) => p.x))), H = r2(Math.max(...pts.map((p) => p.y)));
+      const xs = uniq([0, W].concat(pts.map((p) => r2(p.x)))), ys = uniq([0, H].concat(pts.map((p) => r2(p.y))));
+      const inside = (cx, cy) => {
+        let c = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const a = pts[i], b = pts[j];
+          if ((a.y > cy) !== (b.y > cy) && cx < ((b.x - a.x) * (cy - a.y)) / (b.y - a.y) + a.x) c = !c;
+        }
+        return c;
+      };
+      const nx = xs.length - 1, ny = ys.length - 1, empty = [];
+      let filled = 0;
+      for (let j = 0; j < ny; j++) { empty.push([]); for (let i = 0; i < nx; i++) { const e = !inside((xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2); empty[j].push(e); if (!e) filled += (xs[i + 1] - xs[i]) * (ys[j + 1] - ys[j]); } }
+      if (filled < 1) return null;
+      // tramos horizontales vacíos por fila, luego se fusionan hacia abajo si tienen el mismo ancho
+      const runs = [];
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        if (!empty[j][i]) continue;
+        let k = i; while (k + 1 < nx && empty[j][k + 1]) k++;
+        runs.push({ i0: i, i1: k, j0: j, j1: j }); i = k;
+      }
+      const cuts = [];
+      runs.forEach((r) => {
+        const m = cuts.find((c) => c.i0 === r.i0 && c.i1 === r.i1 && c.j1 === r.j0 - 1);
+        if (m) m.j1 = r.j1; else cuts.push(Object.assign({}, r));
+      });
+      return { w: W, h: H, cuts: cuts.map((c) => ({ x: xs[c.i0], y: ys[c.j0], w: r2(xs[c.i1 + 1] - xs[c.i0]), h: r2(ys[c.j1 + 1] - ys[c.j0]) })) };
+    },
+
     /** Resta los tramos borrados a un segmento axis-aligned; devuelve las piezas restantes. */
     subtract(seg, gaps) {
       const horiz = Math.abs(seg.y1 - seg.y2) < 1e-6;

@@ -58,6 +58,7 @@
     window: 'Acerca la ventana a una pared y haz clic',
     furn: 'Haz clic para colocar · R para girar · Shift para colocar varios · Esc para cancelar',
     measure: 'Haz clic en dos puntos para medir la distancia',
+    shape: 'Haz clic en cada esquina de la casa (las líneas salen rectas) · clic en el primer punto o Enter para cerrar · Retroceso quita el último · Esc cancela',
     cut: 'Arrastra un rectángulo sobre la base para recortarla (esquinas, patios…) · Esc para cancelar',
     erase: 'Pon el cursor sobre cualquier muro (de la casa o de una habitación) y arrastra hasta donde quieras borrarlo · Esc para terminar',
     '3d': 'Arrastra para girar · rueda para acercar · clic derecho para desplazar',
@@ -71,7 +72,7 @@
   function syncTools() {
     document.querySelectorAll('#toolbar .tool').forEach((b) => {
       const id = b.dataset.tool;
-      b.classList.toggle('on', openFly ? openFly === id : st.tool === id || (id === 'base' && (st.tool === 'cut' || st.tool === 'erase')));
+      b.classList.toggle('on', openFly ? openFly === id : st.tool === id || (id === 'base' && (st.tool === 'cut' || st.tool === 'erase' || st.tool === 'shape')));
     });
   }
 
@@ -107,6 +108,7 @@
       const P = st.project, nc = (P.space.cuts || []).length, ng = (P.space.gaps || []).length;
       flyEl.innerHTML = `<div class="fly-head"><h3>Forma de la casa</h3><button class="x" data-close>${FP.icon('close', 16)}</button></div>
         <div class="list">
+          <button class="row" data-base="shape"><span class="opi">${FP.icon('wall', 22)}</span><span>Dibujar la forma con líneas<br><small>Traza el contorno esquina por esquina (L, U, T…)</small></span></button>
           <button class="row" data-base="cut"><span class="opi">${FP.icon('base', 22)}</span><span>Recortar un área<br><small>Esquinas, patios, forma en L…</small></span></button>
           <button class="row" data-base="erase"><span class="opi">${FP.icon('wall', 22)}</span><span>Borrar un tramo de muro<br><small>De la casa o de una habitación</small></span></button>
           ${nc || ng ? `<button class="row" data-base="reset"><span class="opi">${FP.icon('undo', 20)}</span><span>Restaurar forma original<br><small>${nc} recorte(s) · ${ng} tramo(s) borrado(s)</small></span></button>` : ''}
@@ -169,7 +171,7 @@
     if (!p) return;
     const nameEl = document.getElementById('projName');
     if (document.activeElement !== nameEl) nameEl.value = p.name;
-    document.getElementById('projArea').textContent = Math.round(p.space.w * p.space.h * 10) / 10 + ' m²';
+    document.getElementById('projArea').textContent = Math.round(FP.stats().area * 10) / 10 + ' m²';
     document.getElementById('btnUndo').disabled = !FP.history.canUndo();
     document.getElementById('btnRedo').disabled = !FP.history.canRedo();
   }
@@ -199,6 +201,8 @@
       document.getElementById('walkBtn').insertAdjacentHTML('afterbegin', FP.icon('walk', 18));
       document.getElementById('walkBtn').addEventListener('click', () => FP.View3D.startWalk());
       document.getElementById('walkClip').addEventListener('click', () => FP.View3D.toggleNoclip());
+      document.getElementById('walkUp').addEventListener('click', () => FP.View3D.walkLevel(1));
+      document.getElementById('walkDown').addEventListener('click', () => FP.View3D.walkLevel(-1));
       document.getElementById('shotBtn').insertAdjacentHTML('afterbegin', FP.icon('camera', 18));
       document.getElementById('shotBtn').addEventListener('click', () => FP.View3D.capture());
       document.getElementById('walkExit').addEventListener('click', () => FP.View3D.stopWalk());

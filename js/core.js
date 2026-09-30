@@ -60,6 +60,7 @@
       kind: o.kind || 'departamento',
       space: { w: o.w || 10, h: o.h || 8 },
       rooms: [], walls: [], openings: [], furniture: [], measures: [],
+      levels: [{ id: U.uid(), name: 'Planta baja' }], level: 0,
       created: now, modified: now,
     };
   };
@@ -97,14 +98,14 @@
   };
 
   FP.stats = function () {
-    const p = st.project;
-    const sp = p.space.w * p.space.h;
+    const p = st.project, vs = FP.Levels ? FP.Levels.views(p) : [p];
+    const sum = (f) => vs.reduce((a, v) => a + f(v), 0);
     return {
-      area: sp,
-      rooms: p.rooms.length,
-      baths: p.rooms.filter((r) => r.type === 'bano').length,
-      furniture: p.furniture.filter((f) => !f.key.startsWith('art_')).length,
-      roomsArea: p.rooms.reduce((a, r) => a + r.w * r.h, 0),
+      area: sum((v) => FP.Walls.footprint(v).cells.reduce((a, c) => a + c.w * c.h, 0)),
+      rooms: sum((v) => v.rooms.length),
+      baths: sum((v) => v.rooms.filter((r) => r.type === 'bano').length),
+      furniture: sum((v) => v.furniture.filter((f) => !f.key.startsWith('art_')).length),
+      roomsArea: sum((v) => v.rooms.reduce((a, r) => a + r.w * r.h, 0)),
     };
   };
 
@@ -113,7 +114,7 @@
     stack: [], idx: -1,
     snap() {
       const p = st.project;
-      return JSON.stringify({ space: p.space, rooms: p.rooms, walls: p.walls, openings: p.openings, furniture: p.furniture, measures: p.measures });
+      return JSON.stringify({ space: p.space, rooms: p.rooms, walls: p.walls, openings: p.openings, furniture: p.furniture, measures: p.measures, levels: p.levels, level: p.level });
     },
     reset() { H.stack = [H.snap()]; H.idx = 0; },
     push() {

@@ -12,6 +12,7 @@
   const pointers = new Map();
 
   const thr = () => 10 / st.view.s;
+  let shapePts = []; // contorno de la casa que se está dibujando con líneas
   const snapOn = (e) => st.snap && !(e && e.altKey);
 
   /* ---------- vista ---------- */
@@ -59,7 +60,7 @@
       sceneDirty = false;
       gScene.innerHTML = FP.Render.scene(st.project, { mode: st.mode === 'pres' ? 'pres' : 'plan', px, showDims: st.showDims, showGrid: st.showGrid });
     }
-    gOver.innerHTML = overlay(px);
+    gOver.innerHTML = (FP.Levels ? FP.Levels.underlay(st.project) : '') + overlay(px);
   }
 
   /* ---------- hit test ---------- */
@@ -299,6 +300,10 @@
       const p = wallPoint(w, e, null);
       if (measureStart) { finishMeasure(measureStart, p); drag = null; }
       else drag = { type: 'measure', a: p, b: p, sx: e.clientX, sy: e.clientY, moved: false };
+    } else if (t === 'shape') {
+      const p = shapePoint(w, e), f = shapePts[0], l = shapePts[shapePts.length - 1];
+      if (f && shapePts.length >= 3 && Math.hypot(w.x - f.x, w.y - f.y) < 14 / st.view.s) finishShape();
+      else if (!l || Math.abs(p.x - l.x) > 1e-6 || Math.abs(p.y - l.y) > 1e-6) shapePts.push(p);
     } else if (t === 'cut') {
       const p = FP.Snap.point(w, thr(), snapOn(e));
       drag = { type: 'cut', a: p, b: p, sx: e.clientX, sy: e.clientY, moved: false };
@@ -341,6 +346,37 @@
     if (drag) dragMove(e, w); else hover(e, w);
   }
 
+  /** Punto del contorno: va a la cuadrícula y se alinea (recto) con el punto anterior. */
+  function shapePoint(w, e) {
+    let p = FP.Snap.point(w, thr(), snapOn(e));
+    p = { x: Math.max(0, Math.round(p.x * 20) / 20), y: Math.max(0, Math.round(p.y * 20) / 20) };
+    const l = shapePts[shapePts.length - 1];
+    if (l) { if (Math.abs(p.x - l.x) >= Math.abs(p.y - l.y)) p.y = l.y; else p.x = l.x; }
+    return p;
+  }
+  function finishShape() {
+    const pts = shapePts.slice();
+    if (pts.length < 3) { FP.toast('Marca al menos 3 puntos'); return false; }
+    const f = pts[0], l = pts[pts.length - 1];
+    if (Math.abs(f.x - l.x) > 1e-6 && Math.abs(f.y - l.y) > 1e-6) pts.push({ x: f.x, y: l.y }); // esquina para cerrar con línea recta
+    // proyecto vacío y de un solo nivel: la forma se pega a la esquina (0,0); si no, se respeta su posición para no desalinear los niveles
+    const Pj = st.project, empty = FP.Levels.views(Pj).every((v) => !v.rooms.length && !v.walls.length && !v.furniture.length && !v.openings.length);
+    if (empty && FP.Levels.count(Pj) === 1) {
+      const mx = Math.min(...pts.map((q) => q.x)), my = Math.min(...pts.map((q) => q.y));
+      pts.forEach((q) => { q.x -= mx; q.y -= my; });
+    }
+    const res = FP.Walls.shapeToSpace(pts);
+    if (!res) { FP.toast('La forma es muy pequeña'); return false; }
+    const Ps = st.project.space;
+    Ps.w = U.clamp(res.w, 2, 80); Ps.h = U.clamp(res.h, 2, 80); Ps.cuts = res.cuts; Ps.gaps = [];
+    shapePts = [];
+    FP.commit();
+    FP.setTool('select');
+    fit();
+    FP.toast('Forma lista · ' + Math.round(FP.stats().area * 10) / 10 + ' m²');
+    return true;
+  }
+
   function hover(e, w) {
     const t = st.tool;
     let cur = 'default';
@@ -354,6 +390,7 @@
     else if (t === 'wall') { const p = wallPoint(w, e, wallStart); cursorW = p; cur = 'crosshair'; }
     else if (t === 'measure') { const p = wallPoint(w, e, null); cursorW = p; cur = 'crosshair'; }
     else if (t === 'cut') { cursorW = FP.Snap.point(w, thr(), snapOn(e)); cur = 'crosshair'; }
+    else if (t === 'shape') { cursorW = shapePoint(w, e); cur = 'crosshair'; }
     else if (t === 'erase') { const h = nearestOutline(w); eraseHover = h ? { h, t: snapAlong(h, h.horiz ? w.x : w.y, snapOn(e)) } : null; cur = h ? 'crosshair' : 'not-allowed'; }
     svg.style.cursor = cur;
     requestRender(false);
@@ -616,6 +653,15 @@
     }
     if ((st.tool === 'wall' || st.tool === 'measure') && snapDot) s += `<circle cx="${n(snapDot.x)}" cy="${n(snapDot.y)}" r="${n(6 * px)}" fill="none" stroke="${ACC}" stroke-width="${n(1.5 * px)}"/>`;
     // recortar base / borrar tramos
+    if (st.tool === 'shape') {
+      const pts = shapePts, cur = cursorW, near = pts.length >= 3 && Math.hypot(cur.x - pts[0].x, cur.y - pts[0].y) < 14 / st.view.s;
+      const all = pts.concat(cur && !near && pts.length ? [cur] : cur && !pts.length ? [cur] : []);
+      if (pts.length >= 2) s += `<polygon points="${pts.map((q) => n(q.x) + ',' + n(q.y)).join(' ')}${cur && !near ? ' ' + n(cur.x) + ',' + n(cur.y) : ''}" fill="rgba(47,109,246,.09)" stroke="none"/>`;
+      if (pts.length) s += `<polyline points="${all.map((q) => n(q.x) + ',' + n(q.y)).join(' ')}${near ? ' ' + n(pts[0].x) + ',' + n(pts[0].y) : ''}" fill="none" stroke="${ACC}" stroke-width="0.14" stroke-linejoin="round" stroke-linecap="square"/>`;
+      for (let i = 0; i < all.length - 1; i++) { const a = all[i], b = all[i + 1], L = Math.hypot(b.x - a.x, b.y - a.y); if (L > 0.05) s += FP.Measure.dim(a.x, a.y, b.x, b.y, 0.45, U.fmt(L) + ' m', px, { color: ACC, bold: 1, fs: 11.5 }); }
+      pts.forEach((q, i) => { s += `<circle cx="${n(q.x)}" cy="${n(q.y)}" r="${n((i === 0 && pts.length >= 3 ? (near ? 9 : 6) : 4) * px)}" fill="${i === 0 ? (near ? ACC : '#fff') : ACC}" stroke="${ACC}" stroke-width="${n(2 * px)}"/>`; });
+      if (cur) s += `<circle cx="${n(cur.x)}" cy="${n(cur.y)}" r="${n(5 * px)}" fill="none" stroke="${ACC}" stroke-width="${n(1.5 * px)}"/>`;
+    }
     if (st.tool === 'cut') {
       const a = drag && drag.type === 'cut' ? drag.a : null;
       if (a) {
@@ -643,6 +689,7 @@
 
   /* ---------- API pública ---------- */
   function cancel() {
+    if (shapePts.length) { shapePts = []; requestRender(false); return true; }
     if (drag) { if (drag.moved && drag.type !== 'pan' && drag.type !== 'marquee') FP.revert(); drag = null; guides = []; requestRender(false); return true; }
     if (wallStart || measureStart) { wallStart = measureStart = null; requestRender(false); return true; }
     if (st.tool !== 'select') { FP.setTool('select'); return true; }
@@ -651,6 +698,13 @@
   }
 
   FP.Editor = {
+    /** Teclas del dibujo de forma: Enter cierra, Retroceso quita el último punto. */
+    shapeKey(e) {
+      if (st.tool !== 'shape') return false;
+      if (e.key === 'Enter') { finishShape(); return true; }
+      if (e.key === 'Backspace' || e.key === 'Delete') { shapePts.pop(); requestRender(false); return true; }
+      return false;
+    },
     init() {
       svg = document.getElementById('stage');
       wrap = svg.parentElement;
@@ -672,7 +726,7 @@
       ['live', 'change', 'render', 'restore', 'mode'].forEach((ev) => FP.on(ev, () => { if (ev === 'restore') drag = null; requestRender(true); }));
       FP.on('project', () => { ghost = null; guides = []; drag = null; wallStart = measureStart = null; setTimeout(fit, 0); });
       FP.on('selection', () => requestRender(false));
-      FP.on('tool', () => { eraseHover = null; ghost = null; guides = []; ghostRot = 0; wallStart = measureStart = null; drag = null; snapDot = null; svg.style.cursor = 'default'; requestRender(false); });
+      FP.on('tool', () => { shapePts = []; eraseHover = null; ghost = null; guides = []; ghostRot = 0; wallStart = measureStart = null; drag = null; snapDot = null; svg.style.cursor = 'default'; requestRender(false); });
     },
     fit, zoomBy, viewCenter, cancel,
     setSpace(v) { spaceDown = v; if (svg) svg.style.cursor = v ? 'grab' : 'default'; },

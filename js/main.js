@@ -47,6 +47,7 @@
     if (mod && k === 'd') { e.preventDefault(); FP.Actions.duplicate(); return; }
     if (mod && k === 'a') { e.preventDefault(); FP.Actions.selectAll(); return; }
     if (mod) return;
+    if (FP.Editor.shapeKey(e)) { e.preventDefault(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); FP.Actions.remove(); return; }
     if (k === 'f') { FP.Actions.mirror(); return; }
     if (k === 'r') { if (!FP.Editor.rotateGhost()) FP.Actions.rotate(e.shiftKey ? -1 : 1); return; }
@@ -65,6 +66,7 @@
     FP.UI.init();
     FP.Panel.init();
     FP.Dialogs.init();
+    FP.LevelBar.init();
     FP.Shots.init();
 
     document.addEventListener('keydown', onKey);

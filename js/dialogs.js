@@ -66,7 +66,7 @@
         <div class="preview"><div class="pv-box"><div id="pvRect"></div></div><div class="pv-info"><b id="pvArea">80 m²</b><span>de superficie total</span></div></div>
         <button class="primary big" id="sCreate">Crear plano</button>
         <div class="alt">
-          <button id="sRandom">Generar uno aleatorio</button><i>·</i><button id="sBlank">Empezar desde cero</button><i>·</i><button id="sExample">Ver un ejemplo</button>${saved.length ? `<i>·</i><button id="sProjects">Mis proyectos (${saved.length})</button>` : ''}
+          <button id="sRandom">Generar uno aleatorio</button><i>·</i><button id="sBlank">Empezar desde cero</button><i>·</i><button id="sShape">Dibujar mi forma</button><i>·</i><button id="sExample">Ver un ejemplo</button>${saved.length ? `<i>·</i><button id="sProjects">Mis proyectos (${saved.length})</button>` : ''}
         </div>
       </div>`;
     startEl.classList.add('open');
@@ -88,6 +88,7 @@
     startEl.querySelector('#sCreate').addEventListener('click', create);
     startEl.querySelector('#sRandom').addEventListener('click', () => { const p = FP.newProject({ kind }); open(p); FP.Generator.apply({ kind }); FP.history.reset(); });
     startEl.querySelector('#sBlank').addEventListener('click', () => open(FP.newProject({ kind, w: 20, h: 14, name: kind === 'casa' ? 'Mi Casa' : 'Mi Plano' })));
+    startEl.querySelector('#sShape').addEventListener('click', () => { open(FP.newProject({ kind, w: 30, h: 20, name: kind === 'casa' ? 'Mi Casa' : 'Mi Plano' })); FP.setTool('shape'); FP.toast('Haz clic en cada esquina de tu casa; cierra en el primer punto'); });
     startEl.querySelector('#sExample').addEventListener('click', () => open(example()));
     const sp = startEl.querySelector('#sProjects');
     if (sp) sp.addEventListener('click', showProjects);

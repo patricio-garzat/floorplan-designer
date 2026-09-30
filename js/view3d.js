@@ -6,7 +6,7 @@
   const FP = window.FP, U = FP.util;
   const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
   const ORBIT_URL = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
-  const WALL_H = 2.6;
+  const WALL_H = 2.6, LEVEL_H = WALL_H + 0.25;
 
   const LIGHTS = {
     day: { name: 'Día', sun: 0xfff1dc, si: 1.25, az: 35, el: 52, hs: 0xfff6ea, hg: 0xbdb8ac, hi: 0.5, exp: 0.6, sky: ['#5f9ede', '#b7d6f0', '#eef3f6'], lamp: 0.12, emis: 0.0, pl: 0xfff0dc, wk: { exp: 1.55, hemi: 1.9, lamp: 2.4 } },
@@ -466,7 +466,7 @@
   function setInterior(on) {
     ceilings.forEach((c) => { c.castShadow = on; });
     fixtures.forEach((f) => { f.visible = on; });   // focos solo al recorrer la casa; la luz se queda siempre
-    if (ceilAO) ceilAO.visible = on;
+    ceilAOs.forEach((c) => { c.visible = on; });
   }
   function applyLight(name, P) {
     const L = LIGHTS[name], wk = typeof walk !== 'undefined' && walk.on;
@@ -559,6 +559,22 @@
   /* ---------- construcción de la escena ---------- */
   const mesh = (geo, m, x, y, z, cast, recv) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = cast !== false; o.receiveShadow = recv !== false; return o; };
   const bx = (w, h, d, m, x, y, z, cast) => mesh(new THREE.BoxGeometry(w, h, d), m, x, y, z, cast);
+
+  /** Resta rectángulos (huecos de escalera) a un rectángulo; devuelve las piezas que quedan. */
+  function carve(rect, holes) {
+    let pieces = [rect];
+    (holes || []).forEach((h) => {
+      const next = [];
+      pieces.forEach((a) => {
+        const x0 = Math.max(a.x, h.x), x1 = Math.min(a.x + a.w, h.x + h.w), y0 = Math.max(a.y, h.y), y1 = Math.min(a.y + a.h, h.y + h.h);
+        if (x1 - x0 < 0.01 || y1 - y0 < 0.01) { next.push(a); return; }
+        [{ x: a.x, y: a.y, w: a.w, h: y0 - a.y }, { x: a.x, y: y1, w: a.w, h: a.y + a.h - y1 }, { x: a.x, y: y0, w: x0 - a.x, h: y1 - y0 }, { x: x1, y: y0, w: a.x + a.w - x1, h: y1 - y0 }]
+          .forEach((q) => { if (q.w > 0.01 && q.h > 0.01) next.push(q); });
+      });
+      pieces = next;
+    });
+    return pieces;
+  }
 
   function planeUV(w, h, tile) {
     const g = new THREE.PlaneGeometry(w, h), uv = g.attributes.uv;
@@ -861,14 +877,15 @@
     });
   }
 
-  function buildRooms(P, group) {
-    ceilings = []; fixtures = [];
-    dynamic = { lamps: [], emis: [], halos: [] };
+  function buildRooms(P, group, holesBelow, holesUp) {
     const rooms = P.rooms.slice().sort((a, b) => b.w * b.h - a.w * a.h);
     rooms.forEach((r, i) => {
-      const fm = floorMat(FP.Rooms.floorDef(r)), fl = mesh(planeUV(r.w, r.h, fm.tile), fm.mat, r.x + r.w / 2, 0.004, r.y + r.h / 2, false);
-      fl.rotation.x = -Math.PI / 2;
-      group.add(fl);
+      const fm = floorMat(FP.Rooms.floorDef(r));
+      carve({ x: r.x, y: r.y, w: r.w, h: r.h }, holesBelow).forEach((pc) => {
+        const fl = mesh(holesBelow && holesBelow.length ? wallPlane(pc.w, pc.h, fm.tile, pc.x, pc.y) : planeUV(pc.w, pc.h, fm.tile), fm.mat, pc.x + pc.w / 2, 0.004, pc.y + pc.h / 2, false);
+        fl.rotation.x = -Math.PI / 2;
+        group.add(fl);
+      });
       if (FP.Walls.isOutdoor(P, r)) { group.add(bx(r.w, 0.14, r.h, M.slab, r.x + r.w / 2, -0.07, r.y + r.h / 2, false)); return; }
       cladRoom(P, r, group);
       if (r.type !== 'terraza' && r.type !== 'cochera') baseboards(P, r, group);
@@ -902,10 +919,12 @@
     dynamic.emis.push(em2);
     let extra = 0;
     cells.forEach((c) => {
-      const ce = mesh(new THREE.PlaneGeometry(c.w, c.h), M.ceiling, c.x + c.w / 2, WALL_H - 0.005, c.y + c.h / 2, false);
-      ce.rotation.x = Math.PI / 2;
-      group.add(ce);
-      ceilings.push(ce);
+      carve(c, holesUp).forEach((pc) => {
+        const ce = mesh(new THREE.PlaneGeometry(pc.w, pc.h), M.ceiling, pc.x + pc.w / 2, WALL_H - 0.005, pc.y + pc.h / 2, false);
+        ce.rotation.x = Math.PI / 2;
+        group.add(ce);
+        ceilings.push(ce);
+      });
       const nx = Math.max(1, Math.round(c.w / 1.9)), ny = Math.max(1, Math.round(c.h / 1.9));
       for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) {
         const x = c.x + (c.w * (a + 0.5)) / nx, z = c.y + (c.h * (b + 0.5)) / ny;
@@ -925,7 +944,7 @@
   }
 
   /* ---------- oclusión ambiental falsa (contacto muro-piso, bajo muebles, techo) ---------- */
-  let ceilings = [], ceilAO = null, fixtures = [];
+  let ceilings = [], ceilAOs = [], fixtures = [], levelGroups = [];
   const aoGrad = () => T('aoGrad', () => {
     const c = document.createElement('canvas'); c.width = 4; c.height = 64;
     const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 64);
@@ -948,7 +967,7 @@
   }
   function buildAO(P, group) {
     const W = P.space.w, H = P.space.h, wd = 0.5, floorM = aoMat(aoGrad(), 0.85), ceilM = aoMat(aoGrad(), 0.55);
-    ceilAO = new THREE.Group(); ceilAO.visible = false; group.add(ceilAO);
+    const ceilAO = new THREE.Group(); ceilAO.visible = false; group.add(ceilAO); ceilAOs.push(ceilAO);
     P.rooms.forEach((r) => {
       if (FP.Walls.isOutdoor(P, r)) return;
       [[r.x, r.y, r.x + r.w, r.y, 0, 1], [r.x + r.w, r.y, r.x + r.w, r.y + r.h, -1, 0], [r.x + r.w, r.y + r.h, r.x, r.y + r.h, 0, -1], [r.x, r.y + r.h, r.x, r.y, 1, 0]].forEach(([x1, y1, x2, y2, nx, ny]) => {
@@ -1103,7 +1122,7 @@
   }
 
   /* ---------- edificio bajo el departamento ---------- */
-  const levelsBelow = (P) => (P.kind === 'departamento' ? Math.max(0, Math.min(59, Math.round((P.space.floorNo || 5) - 1))) : 0);
+  const levelsBelow = (P0) => { const P = P0.levels ? FP.Levels.view(P0, 0) : P0; return P.kind === 'departamento' ? Math.max(0, Math.min(59, Math.round((P.space.floorNo || 5) - 1))) : 0; };
   function facadeTex(emissive) {
     const S = 256, c = document.createElement('canvas');
     c.width = c.height = S;
@@ -1167,37 +1186,76 @@
     }
   }
 
+  /** Barandal de vidrio alrededor del hueco de la escalera (menos por donde se sale). */
+  function railHoles(g, holes) {
+    holes.forEach((h) => {
+      const e = { N: [h.x, h.y, h.x + h.w, h.y], E: [h.x + h.w, h.y, h.x + h.w, h.y + h.h], S: [h.x + h.w, h.y + h.h, h.x, h.y + h.h], W: [h.x, h.y + h.h, h.x, h.y] };
+      Object.keys(e).forEach((k) => { if (k !== (h.arrive || 'S')) buildRail({ x1: e[k][0], y1: e[k][1], x2: e[k][2], y2: e[k][3] }, { rail: 'glass' }, g); });
+    });
+  }
+  /** Losa de un nivel superior: piso de la huella + grosor, con el hueco de las escaleras de abajo. */
+  function upperSlab(Pi, g, holes) {
+    const sf = Pi.space.floor && FP.Rooms.FLOORS.find((f) => f.id === Pi.space.floor), sm = floorMat(sf || { id: 'slab', kind: 'stone', color: '#d7d4cd' });
+    FP.Walls.footprint(Pi).cells.forEach((c) => carve(c, holes).forEach((pc) => {
+      const fl = mesh(wallPlane(pc.w, pc.h, sm.tile, pc.x, pc.y), sm.mat, pc.x + pc.w / 2, 0.001, pc.y + pc.h / 2, false);
+      fl.rotation.x = -Math.PI / 2;
+      g.add(fl, bx(pc.w, 0.25, pc.h, M.slab, pc.x + pc.w / 2, -0.126, pc.y + pc.h / 2, false));
+    }));
+  }
+  function applyLevelVis() {
+    const P = FP.state.project, cur = P ? FP.Levels.cur(P) : 0, all = FP.state.lvMode !== 'upto';
+    levelGroups.forEach((g, i) => { if (g) g.visible = all || i <= cur; });
+  }
+
   function build(P) {
     if (root) { scene.remove(root); root.traverse((o) => { if (o.geometry && !o.geometry.userData.keep) o.geometry.dispose(); }); }
     root = new THREE.Group();
-    const W = P.space.w, H = P.space.h;
-    const below = levelsBelow(P), H0 = below * 3;
+    const LV = FP.Levels.views(P), P0 = LV[0], cur = FP.Levels.cur(P);
+    const W = P0.space.w, H = P0.space.h;
+    const below = levelsBelow(P0), H0 = below * 3;
     const ground = mesh(wallPlane(600, 600, 6, 0, 0), M.ground, W / 2, -H0 - 0.02, H / 2, false);
     ground.rotation.x = -Math.PI / 2;
     root.add(ground);
-    const sf = P.space.floor && FP.Rooms.FLOORS.find((f) => f.id === P.space.floor), sm = floorMat(sf || { id: 'slab', kind: 'stone', color: '#d7d4cd' });
-    FP.Walls.footprint(P).cells.forEach((c) => {
+    const sf = P0.space.floor && FP.Rooms.FLOORS.find((f) => f.id === P0.space.floor), sm = floorMat(sf || { id: 'slab', kind: 'stone', color: '#d7d4cd' });
+    FP.Walls.footprint(P0).cells.forEach((c) => {
       const slab = mesh(wallPlane(c.w, c.h, sm.tile, c.x, c.y), sm.mat, c.x + c.w / 2, 0.0, c.y + c.h / 2, false);
       slab.rotation.x = -Math.PI / 2;
       root.add(slab, bx(c.w, 0.06, c.h, M.slab, c.x + c.w / 2, -0.032, c.y + c.h / 2, false));
     });
-    if (below > 0) buildBuilding(P, root, below);
-    buildRooms(P, root);
-    buildWalls(P, root);
-    buildDoorLeaves(P, root);
-    tv.count = P.furniture.filter((f) => f.key === 'tv' || f.key === 'desk' || f.key === 'ldesk').length;
-    buildFurniture(P, root);
-    buildAO(P, root);
-    if (walk.on) setInterior(true);
+    if (below > 0) buildBuilding(P0, root, below);
+    ceilings = []; ceilAOs = []; fixtures = []; levelGroups = [];
+    dynamic = { lamps: [], emis: [], halos: [] };
+    tv.count = 0;
+    // el nivel activo primero: si hay más de 16 luces, las de este nivel tienen prioridad
+    LV.map((_, i) => i).sort((a, b) => (a === cur ? -1 : b === cur ? -1 : a - b)).forEach((i) => {
+      const Pi = LV[i], g = new THREE.Group();
+      g.position.y = i * LEVEL_H;
+      root.add(g);
+      levelGroups[i] = g;
+      const holesBelow = i > 0 ? FP.Levels.holes(P, i - 1) : [], holesUp = i < LV.length - 1 ? FP.Levels.holes(P, i) : [];
+      if (i > 0) upperSlab(Pi, g, holesBelow);
+      FP.Models.ctx.up = i < LV.length - 1;
+      buildRooms(Pi, g, holesBelow, holesUp);
+      buildWalls(Pi, g);
+      buildDoorLeaves(Pi, g);
+      tv.count += Pi.furniture.filter((f) => f.key === 'tv' || f.key === 'desk' || f.key === 'ldesk' || f.key === 'desk2').length;
+      buildFurniture(Pi, g);
+      buildAO(Pi, g);
+      if (i > 0) railHoles(g, holesBelow);
+    });
+    applyLevelVis();
+    setInterior(walk.on);
     scene.add(root);
     placeSun(P);
     applyLight(lightName, P);
   }
 
   function fitCamera(P) {
-    const W = P.space.w, H = P.space.h, R = Math.max(W, H), H0 = levelsBelow(P) * 3;
+    const LV = FP.Levels.views(P), nl = LV.length;
+    const W = Math.max(...LV.map((v) => v.space.w)), H = Math.max(...LV.map((v) => v.space.h)), R = Math.max(W, H, nl > 1 ? nl * LEVEL_H * 1.3 : 0), H0 = levelsBelow(LV[0]) * 3;
+    const top = (nl - 1) * LEVEL_H;
     if (H0 > 0) {
-      const ty = -H0 * 0.45, dist = (R + H0 * 0.8) * 1.75;
+      const ty = -H0 * 0.45 + top * 0.5, dist = (R + H0 * 0.8) * 1.75;
       controls.target.set(W / 2, ty, H / 2);
       camera.position.set(W / 2 + dist * 0.3, ty + dist * 0.5, H / 2 + dist * 0.8);
       controls.minDistance = 0.5;
@@ -1205,14 +1263,14 @@
       controls.update();
       return;
     }
-    controls.target.set(W / 2, 0.3, H / 2);
-    camera.position.set(W / 2 + R * 0.2, R * 1.2, H / 2 + R * 0.75);
+    controls.target.set(W / 2, 0.3 + top * 0.45, H / 2);
+    camera.position.set(W / 2 + R * 0.2, top * 0.45 + R * 1.2, H / 2 + R * 0.75);
     controls.minDistance = 0.5;
     controls.maxDistance = R * 4;
     controls.update();
   }
   /* ---------- recorrido en primera persona ---------- */
-  const walk = { noclip: true, on: false, x: 0, z: 0, yaw: 0, pitch: 0, keys: {}, look: null, move: null, cols: null };
+  const walk = { noclip: true, on: false, x: 0, z: 0, yaw: 0, pitch: 0, keys: {}, look: null, move: null, cols: null, level: 0, P: null };
   const R_BODY = 0.24, EYE = 1.6;
 
   function colliders(P) {
@@ -1229,7 +1287,7 @@
   }
   function blocked(x, z) {
     if (walk.noclip) return false;
-    const c = walk.cols, P = FP.state.project;
+    const c = walk.cols, P = walk.P;
     if (x < 0.15 || z < 0.15 || x > P.space.w - 0.15 || z > P.space.h - 0.15) return true;
     for (const s of c.segs) {
       if (s.L < 0.01) continue;
@@ -1260,11 +1318,11 @@
       else if (!blocked(walk.x, walk.z + dz)) walk.z += dz;
     }
     const bob = len > 0.01 ? Math.sin(performance.now() / 170 * run) * 0.012 : 0;
-    camera.position.set(walk.x, EYE + bob, walk.z);
+    camera.position.set(walk.x, EYE + bob + walk.level * LEVEL_H, walk.z);
     camera.rotation.set(walk.pitch, walk.yaw, 0, 'YXZ');
   }
   function drawMap() {
-    const cv = document.getElementById('minimap'), g = cv.getContext('2d'), P = FP.state.project;
+    const cv = document.getElementById('minimap'), g = cv.getContext('2d'), P = walk.P;
     const Wd = cv.width, Hd = cv.height, sc = Math.min((Wd - 20) / P.space.w, (Hd - 20) / P.space.h);
     const ox = (Wd - P.space.w * sc) / 2, oy = (Hd - P.space.h * sc) / 2;
     g.clearRect(0, 0, Wd, Hd);
@@ -1283,7 +1341,9 @@
     const P = FP.state.project;
     if (!ready || !active) { FP.View3D.show().then((ok) => { if (ok) startWalk(); }); return; }
     if (walk.on) return;
-    walk.cols = colliders(P);
+    walk.level = FP.Levels.cur(P); walk.P = P;
+    walk.cols = colliders(walk.P);
+    syncWalkLevelUI();
     const W = P.space.w, H = P.space.h;
     const door = P.openings.find((o) => o.kind === 'door' && (o.x < 0.2 || o.y < 0.2 || o.x > W - 0.2 || o.y > H - 0.2));
     const inside = (px, pz) => P.rooms.some((r) => px > r.x + 0.3 && px < r.x + r.w - 0.3 && pz > r.y + 0.3 && pz < r.y + r.h - 0.3);
@@ -1308,6 +1368,24 @@
     document.getElementById('view3d').focus && document.getElementById('view3d').blur();
     FP.emit('walk');
   }
+  /** Sube o baja un nivel durante el recorrido (PageUp / PageDown o los botones). */
+  function walkLevel(d) {
+    if (!walk.on) return;
+    const P = FP.state.project, n = FP.Levels.count(P), nl = Math.max(0, Math.min(n - 1, walk.level + d));
+    if (nl === walk.level) return;
+    walk.level = nl;
+    walk.P = FP.Levels.view(P, nl);
+    walk.cols = colliders(walk.P);
+    syncWalkLevelUI();
+  }
+  function syncWalkLevelUI() {
+    const P = FP.state.project, n = FP.Levels.count(P), up = document.getElementById('walkUp'), dn = document.getElementById('walkDown'), lb = document.getElementById('walkLevel');
+    if (!up) return;
+    const show = walk.on && n > 1;
+    [up, dn, lb].forEach((b) => { b.hidden = !show; });
+    up.disabled = walk.level >= n - 1; dn.disabled = walk.level <= 0;
+    lb.textContent = FP.Levels.name(P, walk.level);
+  }
   function setNoclip(v) {
     walk.noclip = v;
     const b = document.getElementById('walkClip');
@@ -1322,13 +1400,14 @@
     controls.enabled = true;
     camera.fov = 45; camera.updateProjectionMatrix();
     document.getElementById('app').classList.remove('walking');
+    syncWalkLevelUI();
     fitCamera(FP.state.project);
     FP.emit('walk');
   }
   function bindWalk() {
     const cv = renderer.domElement;
     const typing = (e) => /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || '');
-    window.addEventListener('keydown', (e) => { if (!walk.on || typing(e)) return; if (e.code === 'KeyC') { setNoclip(!walk.noclip); return; } walk.keys[e.code] = true; if (/^(Arrow|Space)/.test(e.code)) e.preventDefault(); });
+    window.addEventListener('keydown', (e) => { if (!walk.on || typing(e)) return; if (e.code === 'KeyC') { setNoclip(!walk.noclip); return; } if (e.code === 'PageUp') { walkLevel(1); return; } if (e.code === 'PageDown') { walkLevel(-1); return; } walk.keys[e.code] = true; if (/^(Arrow|Space)/.test(e.code)) e.preventDefault(); });
     window.addEventListener('keyup', (e) => { delete walk.keys[e.code]; });
     window.addEventListener('blur', () => { walk.keys = {}; });
     const look = (dx, dy) => { walk.yaw -= dx * 0.0027; walk.pitch = Math.max(-1.3, Math.min(1.3, walk.pitch - dy * 0.0027)); };
@@ -1397,9 +1476,10 @@
     },
     hide() { stopWalk(); active = false; cancelAnimationFrame(raf); },
     capture() { if (walk.on) shotWant = true; },
+    walkLevel, applyLevelVis,
     startWalk, stopWalk, isWalking: () => walk.on, setNoclip, toggleNoclip: () => setNoclip(!walk.noclip),
     refit() { if (ready) fitCamera(FP.state.project); },
-    rebuild() { if (ready && active) { build(FP.state.project); if (walk.on) walk.cols = colliders(FP.state.project); } },
+    rebuild() { if (ready && active) { build(FP.state.project); if (walk.on) { const P = FP.state.project; walk.level = Math.min(walk.level, FP.Levels.count(P) - 1); walk.P = FP.Levels.view(P, walk.level); walk.cols = colliders(walk.P); syncWalkLevelUI(); } } },
     setLight(name) { if (ready && LIGHTS[name]) { applyLight(name, FP.state.project); } else lightName = name; FP.emit('light'); },
   };
   // al abrir otro proyecto: salir del recorrido y reconstruir la escena 3D (si no, se seguiría viendo el anterior)

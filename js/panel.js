@@ -111,8 +111,9 @@
       <div class="psec"><h4>Tamaño del espacio</h4>
         <label class="fld"><span>Ancho</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space="w" value="${P.space.w.toFixed(2)}" step="0.5" min="2" max="60"><em>m</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>
         <label class="fld"><span>Largo</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space="h" value="${P.space.h.toFixed(2)}" step="0.5" min="2" max="60"><em>m</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>
-        ${P.kind === 'departamento' ? `<label class="fld"><span>Piso en el edificio</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space-fl value="${P.space.floorNo || 5}" step="1" min="1" max="60"><em>°</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>` : ''}
-        ${(P.space.cuts || []).length || (P.space.gaps || []).length ? `<div class="fld"><span>Forma de la base</span><button class="pbtn" data-act="resetbase">Restaurar</button></div>` : ''}
+        ${P.kind === 'departamento' && !P.level ? `<label class="fld"><span>Piso en el edificio</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space-fl value="${P.space.floorNo || 5}" step="1" min="1" max="60"><em>°</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>` : ''}
+        <div class="fld"><span>Forma de la base</span><span class="in wide" style="gap:6px;justify-content:flex-end"><button class="pbtn" data-act="drawshape" title="Dibuja el contorno con líneas rectas">Dibujar</button>${(P.space.cuts || []).length || (P.space.gaps || []).length ? '<button class="pbtn" data-act="resetbase">Restaurar</button>' : ''}</span></div>
+        ${P.level ? '<div class="fld"><span>Nivel de abajo</span><button class="pbtn" data-act="matchbelow">Copiar su forma</button></div>' : ''}
         <div class="fld"><span>En habitaciones</span><b>${U.fmt(s.roomsArea)} m²</b></div>
         <label class="fld"><span>Piso de la base</span><span class="in wide"><select data-space-floor>${FP.Rooms.FLOORS.reduce((h, f) => h + `<option value="${f.id}"${P.space.floor === f.id ? ' selected' : ''}>${f.name}</option>`, `<option value=""${P.space.floor ? '' : ' selected'}>Concreto (por defecto)</option>`)}</select></span></label>
       </div>
@@ -128,8 +129,9 @@
     return `<div class="ptitle"><small>Vista</small><h2>3D</h2></div>
       <div class="pbtns"><button class="pbtn go" data-act="walk">${FP.icon('walk', 16)}<span>Recorrer la casa</span></button></div>
       <div class="psec" style="margin-top:18px"><h4>Iluminación</h4><div class="chips">${Object.keys(L).map((k) => `<button class="chip${k === cur ? ' on' : ''}" data-light="${k}">${L[k].name}</button>`).join('')}</div></div>
+      ${FP.Levels.count(st.project) > 1 ? `<div class="psec"><h4>Niveles visibles</h4><div class="chips"><button class="chip${st.lvMode !== 'upto' ? ' on' : ''}" data-lvmode="all">Todos</button><button class="chip${st.lvMode === 'upto' ? ' on' : ''}" data-lvmode="upto">Hasta este nivel</button></div><p class="hint-s">Usa "Hasta este nivel" para ver por dentro el piso que estás editando.</p></div>` : ''}
       <div class="psec"><h4>Pisos</h4>
-        ${st.project.kind === 'departamento' ? `<label class="fld"><span>Piso en el edificio</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space-fl value="${st.project.space.floorNo || 5}" step="1" min="1" max="60"><em>°</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>` : ''}
+        ${st.project.kind === 'departamento' && !st.project.level ? `<label class="fld"><span>Piso en el edificio</span><span class="in"><button type="button" class="stb" data-st="-1" tabindex="-1">−</button><input type="number" data-space-fl value="${st.project.space.floorNo || 5}" step="1" min="1" max="60"><em>°</em><button type="button" class="stb" data-st="1" tabindex="-1">+</button></span></label>` : ''}
         <label class="fld"><span>Base de la casa</span><span class="in wide"><select data-space-floor>${FP.Rooms.FLOORS.reduce((h, f) => h + `<option value="${f.id}"${st.project.space.floor === f.id ? ' selected' : ''}>${f.name}</option>`, `<option value=""${st.project.space.floor ? '' : ' selected'}>Concreto (por defecto)</option>`)}</select></span></label>
         <label class="fld"><span>Todas</span><span class="in wide"><select data-floor-all><option value="">Elegir…</option>${FP.Rooms.FLOORS.map((f) => `<option value="${f.id}">${f.name}</option>`).join('')}</select></span></label>
         ${st.project.rooms.map((r) => `<label class="fld"><span>${U.esc(r.name)}</span><span class="in wide"><select data-floor="${r.id}">${FP.Rooms.FLOORS.map((f) => `<option value="${f.id}"${f.id === FP.Rooms.floorDef(r).id ? ' selected' : ''}>${f.name}</option>`).join('')}</select></span></label>`).join('')}
@@ -242,6 +244,8 @@
   }
 
   function onClick(e) {
+    const lm = e.target.closest('[data-lvmode]');
+    if (lm) { st.lvMode = lm.dataset.lvmode; FP.View3D.applyLevelVis(); render(); return; }
     const lb = e.target.closest('[data-light]');
     if (lb) { FP.View3D.setLight(lb.dataset.light); render(); return; }
     const sw = e.target.closest('[data-wc]');
@@ -254,6 +258,8 @@
     else if (a === 'dup') FP.Actions.duplicate();
     else if (a === 'rot') FP.Actions.rotate(1);
     else if (a === 'resetbase') { delete st.project.space.cuts; delete st.project.space.gaps; FP.commit(); FP.render(); render(); }
+    else if (a === 'drawshape') { FP.setTool('shape'); }
+    else if (a === 'matchbelow') { const P = st.project, B = FP.Levels.view(P, P.level - 1); P.space.w = B.space.w; P.space.h = B.space.h; P.space.cuts = U.clone(B.space.cuts || []); P.space.gaps = []; FP.commit(); FP.render(); render(); }
     else if (a === 'hinge') FP.Actions.flipHinge();
     else if (a === 'mirror') FP.Actions.mirror();
     else if (a === 'reseed') { FP.Actions.selected().forEach(({ obj }) => { obj.seed = Math.floor(Math.random() * 1e6); }); FP.commit(); FP.render(); }
