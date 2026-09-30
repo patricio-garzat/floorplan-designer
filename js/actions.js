@@ -113,6 +113,36 @@
       FP.commit();
       FP.render();
     },
+    /** Centra ventanas, puertas y cuadros sobre la pared de su habitación (a lo largo del muro). */
+    centerOnWall() {
+      const P = FP.state.project;
+      let n = 0, miss = 0;
+      selected().forEach(({ obj: o, coll }) => {
+        if (coll !== 'openings' && !(coll === 'furniture' && o.key.startsWith('art_'))) return;
+        const horiz = Math.abs(Math.sin(U.rad(o.rot || 0))) < 0.5, c = horiz ? o.x : o.y, line = horiz ? o.y : o.x, half = o.w / 2;
+        const cands = [];
+        P.rooms.forEach((r) => {
+          const lo = horiz ? r.x : r.y, hi = horiz ? r.x + r.w : r.y + r.h;
+          (horiz ? [r.y, r.y + r.h] : [r.x, r.x + r.w]).forEach((e) => { if (Math.abs(e - line) < 0.2 && c >= lo - 0.05 && c <= hi + 0.05 && hi - lo >= o.w) cands.push([lo, hi]); });
+        });
+        if (!cands.length) { // sin habitación: usa el tramo de muro donde está
+          FP.Walls.segments(P).forEach((s) => {
+            if (s.src === 'rail') return;
+            const sh = Math.abs(s.y1 - s.y2) < 1e-6;
+            if (sh !== horiz || Math.abs((horiz ? s.y1 : s.x1) - line) > 0.2) return;
+            const lo = Math.min(horiz ? s.x1 : s.y1, horiz ? s.x2 : s.y2), hi = Math.max(horiz ? s.x1 : s.y1, horiz ? s.x2 : s.y2);
+            if (c >= lo - 0.05 && c <= hi + 0.05 && hi - lo >= o.w) cands.push([lo, hi]);
+          });
+        }
+        if (!cands.length) { miss++; return; }
+        cands.sort((a, b) => a[1] - a[0] - (b[1] - b[0]));
+        const mid = (cands[0][0] + cands[0][1]) / 2;
+        if (horiz) o.x = mid; else o.y = mid;
+        n++;
+      });
+      if (n) { FP.commit(); FP.render(); FP.toast(n > 1 ? 'Centrados' : 'Centrado en la pared'); }
+      else FP.toast(miss ? 'No encontré la pared para centrarlo' : 'Selecciona una ventana, puerta o cuadro');
+    },
     flipHinge() {
       selected().forEach(({ obj, coll }) => { if (coll === 'openings') obj.mirror = !obj.mirror; });
       FP.commit();

@@ -156,7 +156,7 @@
     if (items.length > 1) {
       fields = [];
       el.innerHTML = `<div class="ptitle"><small>Selección</small><h2>${items.length} elementos</h2></div>
-        <div class="pbtns">${btn('dup', 'copy', 'Duplicar')}${btn('del', 'trash', 'Eliminar', 'danger')}</div>
+        <div class="pbtns">${items.some((i) => i.coll === 'openings' || (i.coll === 'furniture' && i.obj.key.startsWith('art_'))) ? btn('center', 'fit', 'Centrar en la pared') : ''}${btn('dup', 'copy', 'Duplicar')}${btn('del', 'trash', 'Eliminar', 'danger')}</div>
         <p class="note">Arrastra para moverlos juntos. Shift + clic para sumar o quitar elementos.</p>`;
       return;
     }
@@ -166,6 +166,7 @@
     if (f.coll === 'furniture' && f.obj.key.startsWith('art_')) acts += btn('reseed', 'sparkle', 'Otra obra');
     else if (f.coll === 'furniture') acts += btn('rot', 'rotate', 'Rotar 90°') + btn('mirror', 'flip', 'Espejo');
     if (f.coll === 'rooms') acts += btn('rot', 'rotate', 'Girar 90°');
+    if (f.coll === 'openings' || (f.coll === 'furniture' && f.obj.key.startsWith('art_'))) acts += btn('center', 'fit', 'Centrar en la pared');
     if (f.coll === 'openings') acts += btn('rot', 'flip', 'Cambiar lado') + (f.obj.kind === 'door' && f.obj.style !== 'sliding' ? btn('hinge', 'flip', 'Invertir bisagra') : '');
     if (f.coll !== 'measures') acts += btn('dup', 'copy', 'Duplicar');
     acts += btn('del', 'trash', 'Eliminar', 'danger');
@@ -258,6 +259,7 @@
     else if (a === 'dup') FP.Actions.duplicate();
     else if (a === 'rot') FP.Actions.rotate(1);
     else if (a === 'resetbase') { delete st.project.space.cuts; delete st.project.space.gaps; FP.commit(); FP.render(); render(); }
+    else if (a === 'center') FP.Actions.centerOnWall();
     else if (a === 'drawshape') { FP.setTool('shape'); }
     else if (a === 'matchbelow') { const P = st.project, B = FP.Levels.view(P, P.level - 1); P.space.w = B.space.w; P.space.h = B.space.h; P.space.cuts = U.clone(B.space.cuts || []); P.space.gaps = []; FP.commit(); FP.render(); render(); }
     else if (a === 'hinge') FP.Actions.flipHinge();
