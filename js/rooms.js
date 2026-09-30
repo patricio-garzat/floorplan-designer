@@ -52,7 +52,7 @@
     { id: 'marble', name: 'Mármol', color: '#ffffff' },
   ];
   const WALL_SWATCHES = ['#ffffff', '#f6f4f0', '#e9e0d3', '#d8c3a5', '#c9b8a3', '#b9c7c9', '#a9c3b0', '#7d9c8c', '#d98a7a', '#e8b4b8', '#f2cc8f', '#3d5a6c', '#22333b', '#8d8d8d'];
-  const DEF_FLOOR = { recamara: 'oak', principal: 'walnut', sala: 'oak', comedor: 'oak', oficina: 'ash', vestidor: 'oak', bano: 'porcelain', cocina: 'porcelain', lavanderia: 'porcelain_g', terraza: 'stone', balcon: 'deck', cochera: 'concrete', otro: 'oak' };
+  const DEF_FLOOR = { recamara: 'oak', principal: 'walnut', sala: 'oak', comedor: 'oak', oficina: 'ash', vestidor: 'oak', bano: 'porcelain', cocina: 'porcelain', lavanderia: 'porcelain_g', terraza: 'stone', balcon: 'deck', cochera: 'concrete', jardin: 'grass', otro: 'oak' };
 
   FP.Rooms = {
     TYPES, FLOORS, WALLS, WALL_SWATCHES,

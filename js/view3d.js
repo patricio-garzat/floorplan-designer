@@ -318,9 +318,11 @@
       case 'marble': map = T('marble', marbleTex); tile = 2.4; rough = 0.1; env = 1.1; break;
       case 'concrete': map = concreteTex(def.color); tile = 2; rough = 0.42; break;
       case 'carpet': map = carpetTex(def.color); tile = 0.9; rough = 1; env = 0.1; bs = 0.3; break;
+      case 'grass': map = T('grass', grassTex); tile = 5; rough = 1; env = 0.12; bs = 0.6; break;
+      case 'gravel': map = stoneTex(def.color); tile = 0.9; rough = 1; env = 0.1; bs = 1.2; break;
       default: map = stoneTex(def.color); rough = 0.85; bs = 0.2;
     }
-    const K = { wood: [1.1, 0.4, def.id === 'dark' ? 0.45 : 0.35], tile: [2.4, 0.25, 0.3], marble: [0.5, 0.1, 0.45], concrete: [1, 0.4, 0], carpet: [2, 0.12, 0], stone: [2, 0.3, 0] }[def.kind] || [1.5, 0.3, 0];
+    const K = { wood: [1.1, 0.4, def.id === 'dark' ? 0.45 : 0.35], tile: [2.4, 0.25, 0.3], marble: [0.5, 0.1, 0.45], concrete: [1, 0.4, 0], carpet: [2, 0.12, 0], stone: [2, 0.3, 0], grass: [1.6, 0.9, 0], gravel: [2.4, 0.9, 0] }[def.kind] || [1.5, 0.3, 0];
     const pb = pbrMaps(map, K[0], rough, K[1]);
     const m = new THREE.MeshPhysicalMaterial({ map, normalMap: pb.normalMap, normalScale: new THREE.Vector2(1, 1), roughnessMap: pb.roughnessMap, roughness: 1, metalness: 0, envMapIntensity: env, clearcoat: K[2], clearcoatRoughness: 0.12 });
     return (floorCache[def.id] = { mat: m, tile });
@@ -498,10 +500,16 @@
     M.screen.emissiveIntensity = 0.4 + L.emis;
     M.lampshade.emissiveIntensity = 0.3 + L.emis * 1.2;
   }
+  /** Caja que contiene todos los niveles, jardines y terrazas (puede salirse de la base de la casa). */
+  function extent(P) {
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    FP.Levels.views(P).forEach((v) => { const b = FP.Walls.bounds(v); x0 = Math.min(x0, b.x0); y0 = Math.min(y0, b.y0); x1 = Math.max(x1, b.x1); y1 = Math.max(y1, b.y1); });
+    return { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0, cx: (x0 + x1) / 2, cz: (y0 + y1) / 2 };
+  }
   function placeSun(P) {
-    const L = LIGHTS[lightName], W = P.space.w, H = P.space.h, R = Math.max(W, H), az = U.rad(L.az), el = U.rad(L.el);
-    sun.position.set(W / 2 + Math.sin(az) * Math.cos(el) * R * 2, Math.sin(el) * R * 2, H / 2 + Math.cos(az) * Math.cos(el) * R * 2);
-    sun.target.position.set(W / 2, 0, H / 2);
+    const L = LIGHTS[lightName], E = extent(P), W = E.w, H = E.h, R = Math.max(W, H), az = U.rad(L.az), el = U.rad(L.el);
+    sun.position.set(E.cx + Math.sin(az) * Math.cos(el) * R * 2, Math.sin(el) * R * 2, E.cz + Math.cos(az) * Math.cos(el) * R * 2);
+    sun.target.position.set(E.cx, 0, E.cz);
     const sc = sun.shadow.camera;
     Object.assign(sc, { left: -R * 0.9, right: R * 0.9, top: R * 0.9, bottom: -R * 0.9, near: 0.5, far: R * 6 });
     sc.updateProjectionMatrix();
@@ -886,9 +894,9 @@
         fl.rotation.x = -Math.PI / 2;
         group.add(fl);
       });
-      if (FP.Walls.isOutdoor(P, r)) { group.add(bx(r.w, 0.14, r.h, M.slab, r.x + r.w / 2, -0.07, r.y + r.h / 2, false)); return; }
+      if (FP.Walls.isOutdoor(P, r)) { if (r.type !== 'jardin' || P.level) group.add(bx(r.w, 0.14, r.h, M.slab, r.x + r.w / 2, -0.07, r.y + r.h / 2, false)); return; }
       cladRoom(P, r, group);
-      if (r.type !== 'terraza' && r.type !== 'cochera') baseboards(P, r, group);
+      if (r.type !== 'terraza' && r.type !== 'cochera' && r.type !== 'jardin') baseboards(P, r, group);
       const cols = Math.max(1, Math.round(r.w / 1.9)), rws = Math.max(1, Math.round(r.h / 1.9));
       const em = M.lampOn.clone();
       dynamic.emis.push(em);
@@ -965,6 +973,7 @@
     g.setIndex([0, 2, 1, 0, 3, 2]);
     return g;
   }
+  const NO_BLOB = new Set(['pond', 'pool', 'path', 'stones', 'hedge', 'shrub', 'rocks', 'fountain', 'flowerbed', 'pergola', 'firepit', 'hammock', 'glamp', 'fence', 'gate', 'sofa_out', 'shed', 'doghouse']);
   function buildAO(P, group) {
     const W = P.space.w, H = P.space.h, wd = 0.5, floorM = aoMat(aoGrad(), 0.85), ceilM = aoMat(aoGrad(), 0.55);
     const ceilAO = new THREE.Group(); ceilAO.visible = false; group.add(ceilAO); ceilAOs.push(ceilAO);
@@ -986,7 +995,7 @@
           const P0 = [x1 + ux * a + nx * off, y1 + uz * a + ny * off], P1 = [x1 + ux * b + nx * off, y1 + uz * b + ny * off];
           const P2 = [P1[0] + nx * wd, P1[1] + ny * wd], P3 = [P0[0] + nx * wd, P0[1] + ny * wd];
           group.add(new THREE.Mesh(aoQuad(P0, P1, P2, P3, 0.0075), floorM));
-          if (r.type !== 'terraza' && r.type !== 'cochera') ceilAO.add(new THREE.Mesh(aoQuad(P0, P1, P2, P3, WALL_H - 0.006), ceilM));
+          if (r.type !== 'terraza' && r.type !== 'cochera' && r.type !== 'jardin') ceilAO.add(new THREE.Mesh(aoQuad(P0, P1, P2, P3, WALL_H - 0.006), ceilM));
         };
         let cur = 0;
         cuts.forEach((c) => { seg(cur, c[0]); cur = Math.max(cur, c[1]); });
@@ -996,7 +1005,7 @@
     const blobM = aoMat(aoBlob(), 0.75);
     P.furniture.forEach((f) => {
       const d = FP.Furniture.def(f.key);
-      if (!d || d.wall || d.z < 0.3 || f.key.startsWith('rug')) return;
+      if (!d || d.wall || d.z < 0.3 || f.key.startsWith('rug') || f.key.startsWith('tree_') || NO_BLOB.has(f.key)) return;
       const m = new THREE.Mesh(new THREE.PlaneGeometry(f.w + 0.4, f.h + 0.4), blobM);
       m.rotation.order = 'YXZ'; m.rotation.x = -Math.PI / 2; m.rotation.y = -U.rad(f.rot || 0);
       m.position.set(f.x, 0.0065, f.y);
@@ -1251,20 +1260,20 @@
   }
 
   function fitCamera(P) {
-    const LV = FP.Levels.views(P), nl = LV.length;
-    const W = Math.max(...LV.map((v) => v.space.w)), H = Math.max(...LV.map((v) => v.space.h)), R = Math.max(W, H, nl > 1 ? nl * LEVEL_H * 1.3 : 0), H0 = levelsBelow(LV[0]) * 3;
+    const LV = FP.Levels.views(P), nl = LV.length, E = extent(P);
+    const W = E.w, H = E.h, R = Math.max(W, H, nl > 1 ? nl * LEVEL_H * 1.3 : 0), H0 = levelsBelow(LV[0]) * 3;
     const top = (nl - 1) * LEVEL_H;
     if (H0 > 0) {
       const ty = -H0 * 0.45 + top * 0.5, dist = (R + H0 * 0.8) * 1.75;
-      controls.target.set(W / 2, ty, H / 2);
-      camera.position.set(W / 2 + dist * 0.3, ty + dist * 0.5, H / 2 + dist * 0.8);
+      controls.target.set(E.cx, ty, E.cz);
+      camera.position.set(E.cx + dist * 0.3, ty + dist * 0.5, E.cz + dist * 0.8);
       controls.minDistance = 0.5;
       controls.maxDistance = dist * 3;
       controls.update();
       return;
     }
-    controls.target.set(W / 2, 0.3 + top * 0.45, H / 2);
-    camera.position.set(W / 2 + R * 0.2, top * 0.45 + R * 1.2, H / 2 + R * 0.75);
+    controls.target.set(E.cx, 0.3 + top * 0.45, E.cz);
+    camera.position.set(E.cx + R * 0.2, top * 0.45 + R * 1.2, E.cz + R * 0.75);
     controls.minDistance = 0.5;
     controls.maxDistance = R * 4;
     controls.update();
@@ -1288,7 +1297,8 @@
   function blocked(x, z) {
     if (walk.noclip) return false;
     const c = walk.cols, P = walk.P;
-    if (x < 0.15 || z < 0.15 || x > P.space.w - 0.15 || z > P.space.h - 0.15) return true;
+    const bd = FP.Walls.bounds(P);
+    if (x < bd.x0 + 0.15 || z < bd.y0 + 0.15 || x > bd.x1 - 0.15 || z > bd.y1 - 0.15) return true;
     for (const s of c.segs) {
       if (s.L < 0.01) continue;
       const u = ((x - s.x1) * s.dx + (z - s.y1) * s.dz) / s.L;

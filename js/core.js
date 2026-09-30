@@ -153,7 +153,8 @@
   /** Límites donde puede estar un objeto: muebles, balcones y terrazas pueden salir de la base de la casa. */
   FP.limits = function (project, coll, obj) {
     const W = project.space.w, H = project.space.h;
-    const ext = coll === 'furniture' || (coll === 'rooms' && obj && (obj.type === 'balcon' || obj.type === 'terraza' || obj.type === 'cochera'));
+    const ext = coll === 'furniture' || (coll === 'rooms' && obj && (obj.type === 'balcon' || obj.type === 'terraza' || obj.type === 'cochera' || obj.type === 'jardin'));
+    if (coll === 'rooms' && obj && obj.type === 'jardin') return { x0: -30, y0: -30, x1: W + 30, y1: H + 30 };
     return ext ? { x0: -8, y0: -8, x1: W + 8, y1: H + 8 } : { x0: 0, y0: 0, x1: W, y1: H };
   };
 
