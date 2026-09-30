@@ -492,7 +492,10 @@
     sun.color.setHex(L.sun); sun.intensity = L.si;
     hemi.color.setHex(L.hs); hemi.groundColor.setHex(L.hg); hemi.intensity = L.hi * B.hemi;
     if (P) placeSun(P);
-    dynamic.lamps.forEach((l) => { l.color.setHex(L.pl); l.intensity = L.lamp * l.userData.k * B.lamp; });
+    dynamic.lamps.forEach((l) => {
+      if (l.userData.user) { l.color.set(l.userData.tint); l.intensity = Math.max(L.lamp, 0.85) * l.userData.k * Math.max(1, B.lamp * 0.7); } // las lámparas puestas a propósito alumbran también de día
+      else { l.color.setHex(L.pl); l.intensity = L.lamp * l.userData.k * B.lamp; }
+    });
     dynamic.emis.forEach((m) => { m.emissiveIntensity = 0.15 + L.emis * 1.3; });
     dynamic.halos.forEach((h) => { h.material.opacity = name === 'night' ? 0.55 : name === 'sunset' ? 0.32 : 0.06; });
     updateSkyline(name, P);
@@ -869,6 +872,7 @@
     });
   }
 
+  const MAX_USER_LIGHTS = 14;
   function buildFurniture(P, group) {
     P.furniture.forEach((f) => {
       let g = FP.Models.build(f);
@@ -882,6 +886,16 @@
       g.rotation.y = -U.rad(f.rot || 0);
       if (f.mirror) g.scale.x = -1;
       group.add(g);
+      // lámparas del usuario: luces reales (hasta MAX_USER_LIGHTS en toda la casa)
+      FP.Lamps.emitters(f).forEach((e) => {
+        if (dynamic.lamps.filter((l) => l.userData.user).length >= MAX_USER_LIGHTS) return;
+        let l;
+        if (e.spot) { l = new THREE.SpotLight(0xffffff, 1, e.dist, 1.15, 0.6, 1.5); l.position.set(e.x, e.y, e.z); l.target.position.set(e.x, 0, e.z); group.add(l.target); }
+        else { l = new THREE.PointLight(0xffffff, 1, e.dist, 1.5); l.position.set(e.x, e.y, e.z); }
+        l.userData = { k: e.k, user: true, tint: e.tint };
+        group.add(l);
+        dynamic.lamps.push(l);
+      });
     });
   }
 
@@ -912,7 +926,7 @@
       const nx = want >= 3 ? 2 : want, ny = want === 4 ? 2 : want === 3 ? 2 : 1, spots = [];
       for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) spots.push([r.x + (r.w * (a + 0.5)) / nx, r.y + (r.h * (b + 0.5)) / ny]);
       spots.slice(0, want).forEach(([lx, lz]) => {
-        if (dynamic.lamps.length >= 16) return;
+        if (dynamic.lamps.filter((q) => !q.userData.user).length >= 16) return;
         const pl = new THREE.PointLight(0xffffff, 1, Math.max(4.2, Math.min(7, Math.max(r.w / nx, r.h / ny) * 1.9 + 1.5)), 1.5);
         pl.position.set(lx, WALL_H - 0.35, lz);
         pl.userData.k = want === 1 ? 1.0 : 0.72;
@@ -938,7 +952,7 @@
         const x = c.x + (c.w * (a + 0.5)) / nx, z = c.y + (c.h * (b + 0.5)) / ny;
         if (inRoom(x, z)) continue;
         group.add(mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.012, 20), em2, x, WALL_H - 0.012, z, false, false)); fixtures.push(group.children[group.children.length - 1]);
-        if (extra < 3 && dynamic.lamps.length < 16 && (a + b) % 2 === 0) {
+        if (extra < 3 && dynamic.lamps.filter((q) => !q.userData.user).length < 16 && (a + b) % 2 === 0) {
           const pl = new THREE.PointLight(0xffffff, 1, 6, 1.7);
           pl.position.set(x, WALL_H - 0.35, z);
           pl.userData.k = 0.8;
@@ -1005,7 +1019,7 @@
     const blobM = aoMat(aoBlob(), 0.75);
     P.furniture.forEach((f) => {
       const d = FP.Furniture.def(f.key);
-      if (!d || d.wall || d.z < 0.3 || f.key.startsWith('rug') || f.key.startsWith('tree_') || NO_BLOB.has(f.key)) return;
+      if (!d || d.wall || d.z < 0.3 || f.key.startsWith('rug') || f.key.startsWith('tree_') || NO_BLOB.has(f.key) || FP.Lamps.NOBLOCK.has(f.key)) return;
       const m = new THREE.Mesh(new THREE.PlaneGeometry(f.w + 0.4, f.h + 0.4), blobM);
       m.rotation.order = 'YXZ'; m.rotation.x = -Math.PI / 2; m.rotation.y = -U.rad(f.rot || 0);
       m.position.set(f.x, 0.0065, f.y);
@@ -1234,6 +1248,7 @@
     if (below > 0) buildBuilding(P0, root, below);
     ceilings = []; ceilAOs = []; fixtures = []; levelGroups = [];
     dynamic = { lamps: [], emis: [], halos: [] };
+    FP.Models.ctx.regEmis = (m) => dynamic.emis.push(m);
     tv.count = 0;
     // el nivel activo primero: si hay más de 16 luces, las de este nivel tienen prioridad
     LV.map((_, i) => i).sort((a, b) => (a === cur ? -1 : b === cur ? -1 : a - b)).forEach((i) => {
@@ -1292,7 +1307,7 @@
       });
       return { x1: s.x1, y1: s.y1, dx, dz, L, h: s.t / 2, cuts };
     });
-    return { segs, furn: P.furniture.filter((f) => !['tv', 'pendant', 'fan'].includes(f.key) && !f.key.startsWith('art_')) };
+    return { segs, furn: P.furniture.filter((f) => !['tv', 'pendant', 'fan'].includes(f.key) && !FP.Lamps.NOBLOCK.has(f.key) && !f.key.startsWith('art_')) };
   }
   function blocked(x, z) {
     if (walk.noclip) return false;

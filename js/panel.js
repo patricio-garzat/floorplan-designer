@@ -30,6 +30,16 @@
           ro('Área', 'area', (o) => U.fmt(o.w * o.h) + ' m²'),
         ].concat(o.type === 'balcon' || o.type === 'terraza' || o.type === 'cochera' || o.type === 'jardin' ? [sel('Barandal', 'rail', [['glass', 'Cristal'], ['bars', 'Rejas metálicas'], ['wall', 'Muro bajo']].concat(o.type === 'cochera' || o.type === 'jardin' ? [['none', 'Sin barda ni reja']] : []), (o) => o.rail || (o.type === 'cochera' || o.type === 'jardin' ? 'none' : 'glass'), (o, v) => { o.rail = v; })] : []);
       case 'furniture':
+        if (FP.Lamps.is(o.key)) {
+          const d = FP.Lamps.DEF[o.key];
+          return [
+            txt('Nombre', 'name', (o) => o.name, (o, v) => { o.name = v.trim() || FP.Furniture.def(o.key).name; }),
+            sel('Estado', 'on', [['1', 'Encendida'], ['0', 'Apagada']], (o) => (FP.Lamps.on(o) ? '1' : '0'), (o, v) => { o.on = v === '1' ? 1 : 0; }),
+            sel('Intensidad', 'bright', [['low', 'Tenue'], ['normal', 'Normal'], ['high', 'Intensa']], (o) => o.bright || 'normal', (o, v) => { o.bright = v; }),
+            sel('Tono de luz', 'tone', [['warm', 'Cálida'], ['neutral', 'Neutra'], ['cool', 'Fría']], (o) => o.tone || 'warm', (o, v) => { o.tone = v; }),
+          ].concat(d.elev ? [num('Altura de apoyo', 'elev', (o) => (o.elev != null ? o.elev : d.elev), (o, v) => { o.elev = U.clamp(v, 0, 1.6); }, { min: 0, max: 1.6 })] : [])
+            .concat(d.wall ? [num('Altura', 'z', (o) => o.z, (o, v) => { o.z = U.clamp(v, 0.6, 2.4); }, { min: 0.6, max: 2.4 })] : [num('Rotación', 'rot', (o) => Math.round(o.rot || 0), (o, v) => { o.rot = U.norm360(Math.round(v)); }, { unit: '°', step: 15 })]);
+        }
         if (o.key.startsWith('art_')) {
           return [
             txt('Nombre', 'name', (o) => o.name, (o, v) => { o.name = v.trim() || FP.Furniture.def(o.key).name; }),
