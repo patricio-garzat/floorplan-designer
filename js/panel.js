@@ -22,13 +22,13 @@
         return [
           txt('Nombre', 'name', (o) => o.name, (o, v) => { o.name = v.trim() || FP.Rooms.def(o.type).name; }),
           sel('Tipo', 'type', FP.Rooms.TYPES.map((t) => [t.id, t.name]), (o) => o.type, (o, v) => { o.type = v; }),
-          num('Ancho', 'w', (o) => o.w, (o, v) => { o.w = U.clamp(v, 0.5, W + 8); if (!(o.type === 'balcon' || o.type === 'terraza') && o.x + o.w > W) o.x = W - o.w; }, { min: 0.5, max: W }),
-          num('Largo', 'h', (o) => o.h, (o, v) => { o.h = U.clamp(v, 0.5, H + 8); if (!(o.type === 'balcon' || o.type === 'terraza') && o.y + o.h > H) o.y = H - o.h; }, { min: 0.5, max: H }),
+          num('Ancho', 'w', (o) => o.w, (o, v) => { o.w = U.clamp(v, 0.5, W + 8); if (!(o.type === 'balcon' || o.type === 'terraza' || o.type === 'cochera') && o.x + o.w > W) o.x = W - o.w; }, { min: 0.5, max: W }),
+          num('Largo', 'h', (o) => o.h, (o, v) => { o.h = U.clamp(v, 0.5, H + 8); if (!(o.type === 'balcon' || o.type === 'terraza' || o.type === 'cochera') && o.y + o.h > H) o.y = H - o.h; }, { min: 0.5, max: H }),
           sel('Piso', 'floor', FP.Rooms.FLOORS.map((f) => [f.id, f.name]), (o) => FP.Rooms.floorDef(o).id, (o, v) => { o.floor = v; }),
           sel('Textura de pared', 'wtex', [['', 'Pintura base']].concat(FP.Rooms.WALLS.map((w) => [w.id, w.name])), (o) => (o.wall && o.wall.tex) || '', (o, v) => setWall(o, v, null)),
           color('Color de pared', 'wcolor', (o) => (FP.Rooms.wallDef(o) || { color: '#f6f4f0' }).color, (o, v) => setWall(o, (o.wall && o.wall.tex) || 'paint', v)),
           ro('Área', 'area', (o) => U.fmt(o.w * o.h) + ' m²'),
-        ].concat(o.type === 'balcon' || o.type === 'terraza' ? [sel('Barandal', 'rail', [['glass', 'Cristal'], ['bars', 'Rejas metálicas'], ['wall', 'Muro bajo']], (o) => o.rail || 'glass', (o, v) => { o.rail = v; })] : []);
+        ].concat(o.type === 'balcon' || o.type === 'terraza' || o.type === 'cochera' ? [sel('Barandal', 'rail', [['glass', 'Cristal'], ['bars', 'Rejas metálicas'], ['wall', 'Muro bajo']].concat(o.type === 'cochera' ? [['none', 'Sin barandal']] : []), (o) => o.rail || (o.type === 'cochera' ? 'none' : 'glass'), (o, v) => { o.rail = v; })] : []);
       case 'furniture':
         if (o.key.startsWith('art_')) {
           return [
@@ -225,7 +225,7 @@
       P.space[inp.dataset.space] = val;
       if (P.space.cuts) P.space.cuts = P.space.cuts.map((c) => ({ x: Math.min(c.x, P.space.w - 0.5), y: Math.min(c.y, P.space.h - 0.5), w: Math.min(c.w, P.space.w - c.x), h: Math.min(c.h, P.space.h - c.y) })).filter((c) => c.w > 0.3 && c.h > 0.3);
       // no dejar nada fuera del espacio
-      P.rooms.forEach((r) => { if (r.type === 'balcon' || r.type === 'terraza') return; r.x = Math.min(r.x, Math.max(0, P.space.w - r.w)); r.y = Math.min(r.y, Math.max(0, P.space.h - r.h)); r.w = Math.min(r.w, P.space.w); r.h = Math.min(r.h, P.space.h); });
+      P.rooms.forEach((r) => { if (r.type === 'balcon' || r.type === 'terraza' || r.type === 'cochera') return; r.x = Math.min(r.x, Math.max(0, P.space.w - r.w)); r.y = Math.min(r.y, Math.max(0, P.space.h - r.h)); r.w = Math.min(r.w, P.space.w); r.h = Math.min(r.h, P.space.h); });
       FP.commit(); FP.render(); render();
       return;
     }

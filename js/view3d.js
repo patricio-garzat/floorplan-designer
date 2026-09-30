@@ -871,7 +871,7 @@
       group.add(fl);
       if (FP.Walls.isOutdoor(P, r)) { group.add(bx(r.w, 0.14, r.h, M.slab, r.x + r.w / 2, -0.07, r.y + r.h / 2, false)); return; }
       cladRoom(P, r, group);
-      if (r.type !== 'terraza') baseboards(P, r, group);
+      if (r.type !== 'terraza' && r.type !== 'cochera') baseboards(P, r, group);
       const cols = Math.max(1, Math.round(r.w / 1.9)), rws = Math.max(1, Math.round(r.h / 1.9));
       const em = M.lampOn.clone();
       dynamic.emis.push(em);
@@ -967,7 +967,7 @@
           const P0 = [x1 + ux * a + nx * off, y1 + uz * a + ny * off], P1 = [x1 + ux * b + nx * off, y1 + uz * b + ny * off];
           const P2 = [P1[0] + nx * wd, P1[1] + ny * wd], P3 = [P0[0] + nx * wd, P0[1] + ny * wd];
           group.add(new THREE.Mesh(aoQuad(P0, P1, P2, P3, 0.0075), floorM));
-          if (r.type !== 'terraza') ceilAO.add(new THREE.Mesh(aoQuad(P0, P1, P2, P3, WALL_H - 0.006), ceilM));
+          if (r.type !== 'terraza' && r.type !== 'cochera') ceilAO.add(new THREE.Mesh(aoQuad(P0, P1, P2, P3, WALL_H - 0.006), ceilM));
         };
         let cur = 0;
         cuts.forEach((c) => { seg(cur, c[0]); cur = Math.max(cur, c[1]); });

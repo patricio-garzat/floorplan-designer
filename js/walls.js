@@ -89,7 +89,7 @@
       project.rooms.forEach((r) => {
         if (Walls.isOutdoor(project, r)) { // barandal: todo el perímetro salvo el lado que toca el muro de la casa
           [[r.x, r.y, r.x + r.w, r.y], [r.x + r.w, r.y, r.x + r.w, r.y + r.h], [r.x + r.w, r.y + r.h, r.x, r.y + r.h], [r.x, r.y + r.h, r.x, r.y]].forEach(([x1, y1, x2, y2]) => {
-            if (!Walls.onOutline(project, x1, y1, x2, y2)) a.push({ x1, y1, x2, y2, t: 0.05, src: 'rail', id: r.id });
+            if ((r.rail || (r.type === 'cochera' ? 'none' : 'glass')) !== 'none' && !Walls.onOutline(project, x1, y1, x2, y2)) a.push({ x1, y1, x2, y2, t: 0.05, src: 'rail', id: r.id });
           });
           return;
         }
@@ -127,7 +127,7 @@
     /** Balcón, o terraza cuyo centro queda fuera de la base: se dibuja con barandal en vez de muros. */
     isOutdoor(project, r) {
       if (r.type === 'balcon') return true;
-      if (r.type !== 'terraza') return false;
+      if (r.type !== 'terraza' && r.type !== 'cochera') return false;
       const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
       return !Walls.footprint(project).cells.some((c) => cx > c.x && cx < c.x + c.w && cy > c.y && cy < c.y + c.h);
     },
