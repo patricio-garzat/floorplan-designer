@@ -78,7 +78,7 @@
       s += '</g>';
 
       // muebles
-      s += `<g${p ? ' filter="url(#sh)"' : ''}>${project.furniture.map((f) => FP.Furniture.svg(f, p, px)).join('')}</g>`;
+      s += `<g${p ? ' filter="url(#sh)"' : ''}>${FP.Furniture.ordered(project).map((f) => FP.Furniture.svg(f, p, px)).join('')}</g>`;
       // puertas y ventanas
       s += project.openings.map((op) => FP.Openings.svg(op, p, px)).join('');
       // etiquetas y mediciones

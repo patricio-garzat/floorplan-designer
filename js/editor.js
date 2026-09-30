@@ -77,8 +77,9 @@
       const o = P.openings[i], l = G.toLocal(o, w);
       if (Math.abs(l.x) <= o.w / 2 + tol && Math.abs(l.y) <= 0.14 + tol) return { id: o.id, coll: 'openings' };
     }
-    for (let i = P.furniture.length - 1; i >= 0; i--) {
-      const f = P.furniture[i], l = G.toLocal(f, w), t = tol * 0.4;
+    const fo = FP.Furniture.ordered(P);
+    for (let i = fo.length - 1; i >= 0; i--) {
+      const f = fo[i], l = G.toLocal(f, w), t = tol * 0.4;
       if (Math.abs(l.x) <= f.w / 2 + t && Math.abs(l.y) <= f.h / 2 + t) return { id: f.id, coll: 'furniture' };
     }
     for (let i = P.measures.length - 1; i >= 0; i--) {

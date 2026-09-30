@@ -172,6 +172,7 @@
     acts += btn('del', 'trash', 'Eliminar', 'danger');
     el.innerHTML = `<div class="ptitle"><small>${KIND[f.coll]}</small><h2>${U.esc(titleOf(f))}</h2></div>
       <div class="psec">${fields.map((fl) => fieldHTML(fl, f.obj)).join('')}</div>
+      ${f.coll === 'furniture' ? `<div class="psec"><h4>Capa</h4><div class="chips"><button class="chip" data-layer="front" title="Traer al frente (Mayús + ])">Al frente</button><button class="chip" data-layer="up" title="Subir una capa (])">Subir</button><button class="chip" data-layer="down" title="Bajar una capa ([)">Bajar</button><button class="chip" data-layer="back" title="Enviar al fondo (Mayús + [)">Al fondo</button></div></div>` : ''}
       ${f.coll === 'rooms' ? `<div class="psec"><h4>Colores de pared</h4><div class="sw">${FP.Rooms.WALL_SWATCHES.map((c) => `<button class="swb" data-wc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div></div>` : ''}
       <div class="pbtns">${acts}</div>`;
   }
@@ -245,6 +246,8 @@
   }
 
   function onClick(e) {
+    const ly = e.target.closest('[data-layer]');
+    if (ly) { FP.Actions.layer(ly.dataset.layer); return; }
     const lm = e.target.closest('[data-lvmode]');
     if (lm) { st.lvMode = lm.dataset.lvmode; FP.View3D.applyLevelVis(); render(); return; }
     const lb = e.target.closest('[data-light]');

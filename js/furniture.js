@@ -260,6 +260,11 @@
 
   FP.Furniture = {
     CATS, ITEMS: I, mk,
+    /** Muebles de atrás hacia adelante: por `layer` si lo tienen; las alfombras y piezas planas van al fondo por defecto. */
+    ordered(project) {
+      const key = (f) => (f.layer !== undefined ? f.layer : (f.key.startsWith('rug') || (I[f.key] && I[f.key].z < 0.1) ? -1e6 : 1e6));
+      return project.furniture.map((f, i) => [f, i]).sort((a, b) => key(a[0]) - key(b[0]) || a[1] - b[1]).map((x) => x[0]);
+    },
     artIcon,
     def: (key) => I[key],
     create(key, x, y, rot) {

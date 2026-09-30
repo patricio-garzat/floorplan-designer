@@ -49,6 +49,7 @@
     if (mod) return;
     if (FP.Editor.shapeKey(e)) { e.preventDefault(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); FP.Actions.remove(); return; }
+    if (e.code === 'BracketRight' || e.code === 'BracketLeft' || k === ']' || k === '[' || k === '}' || k === '{') { const up = e.code === 'BracketRight' || k === ']' || k === '}'; FP.Actions.layer(e.shiftKey ? (up ? 'front' : 'back') : up ? 'up' : 'down'); return; }
     if (k === 'f') { FP.Actions.mirror(); return; }
     if (k === 'r') { if (!FP.Editor.rotateGhost()) FP.Actions.rotate(e.shiftKey ? -1 : 1); return; }
     if (e.key.startsWith('Arrow') && st.sel.length) {

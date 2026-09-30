@@ -113,6 +113,20 @@
       FP.commit();
       FP.render();
     },
+    /** Orden de capas de los muebles: 'front' | 'back' | 'up' | 'down'. */
+    layer(mode) {
+      const P = FP.state.project, ids = new Set(selected().filter((x) => x.coll === 'furniture').map((x) => x.obj.id));
+      if (!ids.size) return;
+      let S = FP.Furniture.ordered(P);
+      const sel = S.filter((f) => ids.has(f.id)), rest = S.filter((f) => !ids.has(f.id));
+      if (mode === 'front') S = rest.concat(sel);
+      else if (mode === 'back') S = sel.concat(rest);
+      else if (mode === 'up') { for (let i = S.length - 2; i >= 0; i--) if (ids.has(S[i].id) && !ids.has(S[i + 1].id)) { const t = S[i]; S[i] = S[i + 1]; S[i + 1] = t; } }
+      else { for (let i = 1; i < S.length; i++) if (ids.has(S[i].id) && !ids.has(S[i - 1].id)) { const t = S[i]; S[i] = S[i - 1]; S[i - 1] = t; } }
+      S.forEach((f, i) => { f.layer = i; });
+      FP.commit();
+      FP.render();
+    },
     /** Centra ventanas, puertas y cuadros sobre la pared de su habitación (a lo largo del muro). */
     centerOnWall() {
       const P = FP.state.project;
