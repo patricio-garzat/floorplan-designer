@@ -987,7 +987,7 @@
     g.setIndex([0, 2, 1, 0, 3, 2]);
     return g;
   }
-  const NO_BLOB = new Set(['pond', 'pool', 'path', 'stones', 'hedge', 'shrub', 'rocks', 'fountain', 'flowerbed', 'pergola', 'firepit', 'hammock', 'glamp', 'fence', 'gate', 'sofa_out', 'shed', 'doghouse']);
+  const NO_BLOB = new Set(['pond', 'pool', 'path', 'stones', 'hedge', 'shrub', 'rocks', 'fountain', 'flowerbed', 'pergola', 'firepit', 'hammock', 'glamp', 'fence', 'gate', 'sofa_out', 'shed', 'doghouse', 'poker_table']);
   function buildAO(P, group) {
     const W = P.space.w, H = P.space.h, wd = 0.5, floorM = aoMat(aoGrad(), 0.85), ceilM = aoMat(aoGrad(), 0.55);
     const ceilAO = new THREE.Group(); ceilAO.visible = false; group.add(ceilAO); ceilAOs.push(ceilAO);
@@ -1262,7 +1262,7 @@
       buildRooms(Pi, g, holesBelow, holesUp);
       buildWalls(Pi, g);
       buildDoorLeaves(Pi, g);
-      tv.count += Pi.furniture.filter((f) => f.key === 'tv' || f.key === 'desk' || f.key === 'ldesk' || f.key === 'desk2').length;
+      tv.count += Pi.furniture.filter((f) => f.key === 'tv' || f.key === 'desk' || f.key === 'ldesk' || f.key === 'desk2' || f.key === 'arcade').length;
       buildFurniture(Pi, g);
       buildAO(Pi, g);
       if (i > 0) railHoles(g, holesBelow);
