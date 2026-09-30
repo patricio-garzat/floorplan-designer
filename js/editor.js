@@ -140,6 +140,7 @@
       const sn = FP.Snap.box(b, null, { mode: 'room', thr: thr(), on });
       guides = sn.guides;
       ghost = { kind: 'room', type: pl.type, x: U.clamp(b.l + sn.dx, LM.x0, LM.x1 - gw), y: U.clamp(b.t + sn.dy, LM.y0, LM.y1 - gh), w: gw, h: gh };
+      if (FP.Walls.isInner(pl.type) && FP.Walls.overlapsCut(P, ghost)) { const q = FP.Walls.pushOut(P, ghost); if (q) { ghost.x = q.x; ghost.y = q.y; } else ghost.bad = true; }
     } else if (t === 'furn') {
       const d = FP.Furniture.def(pl.key);
       const it = { key: pl.key, x: w.x, y: w.y, w: d.w, h: d.h, rot: ghostRot };
@@ -171,6 +172,7 @@
     const P = st.project;
     if (!ghost) return;
     if (ghost.kind === 'room') {
+      if (ghost.bad) { FP.toast('No cabe dentro de los muros de la casa'); return; }
       const r = FP.Rooms.create(P, ghost.type, ghost.x, ghost.y, ghost.w, ghost.h);
       P.rooms.push(r);
       finishPlace(r.id, keep);
@@ -431,6 +433,13 @@
           let ax = -1e9, bx = 1e9, ay = -1e9, by = 1e9;
           d.items.forEach((it) => { const q = G.bbox(it.orig, it.coll), LM = FP.limits(P, it.coll, it.obj); ax = Math.max(ax, LM.x0 - q.l); bx = Math.min(bx, LM.x1 - q.r); ay = Math.max(ay, LM.y0 - q.t); by = Math.min(by, LM.y1 - q.b); });
           dx = Math.min(bx, Math.max(ax, dx)); dy = Math.min(by, Math.max(ay, dy));
+          // las habitaciones topan con los muros exteriores (también en formas dibujadas)
+          const rm = d.items.find((it) => it.coll === 'rooms' && FP.Walls.isInner(it.obj.type));
+          if (rm) {
+            const q = rm.orig, rect = { x: q.x + dx, y: q.y + dy, w: q.w, h: q.h };
+            if (FP.Walls.overlapsCut(P, rect)) { const pu = FP.Walls.pushOut(P, rect); if (pu) { dx = pu.x - q.x; dy = pu.y - q.y; } else { dx = d.lastDx || 0; dy = d.lastDy || 0; } }
+            d.lastDx = dx; d.lastDy = dy;
+          }
           d.items.forEach((it) => applyDelta(it, dx, dy));
         }
         FP.emit('live');
@@ -453,6 +462,15 @@
           const MIN = 0.5;
           if (R - L < MIN) { if (hd.includes('w')) L = Math.max(LM.x0, R - MIN); else R = Math.min(LM.x1, L + MIN); }
           if (B - T < MIN) { if (hd.includes('n')) T = Math.max(LM.y0, B - MIN); else B = Math.min(LM.y1, T + MIN); }
+          if (FP.Walls.isInner(o.type)) { // el borde se detiene al tocar el muro exterior
+            const cand = { L, T, R, B }, ok = d.lastOk || { L: q.x, T: q.y, R: q.x + q.w, B: q.y + q.h }, rc = (v) => ({ x: v.L, y: v.T, w: v.R - v.L, h: v.B - v.T });
+            if (FP.Walls.overlapsCut(P, rc(cand))) {
+              let lo = 0, hi = 1;
+              for (let i = 0; i < 10; i++) { const t = (lo + hi) / 2, m = { L: ok.L + (L - ok.L) * t, T: ok.T + (T - ok.T) * t, R: ok.R + (R - ok.R) * t, B: ok.B + (B - ok.B) * t }; if (FP.Walls.overlapsCut(P, rc(m))) hi = t; else lo = t; }
+              L = ok.L + (L - ok.L) * lo; T = ok.T + (T - ok.T) * lo; R = ok.R + (R - ok.R) * lo; B = ok.B + (B - ok.B) * lo;
+            }
+            d.lastOk = { L, T, R, B };
+          }
           o.x = L; o.y = T; o.w = R - L; o.h = B - T;
         } else if (d.hd === 'rot') {
           let r = U.norm360(U.deg(Math.atan2(w.y - o.y, w.x - o.x)) + 90);
@@ -481,7 +499,9 @@
           let y1 = U.clamp(Math.min(a.y, b.y), LM.y0, LM.y1), y2 = U.clamp(Math.max(a.y, b.y), LM.y0, LM.y1);
           if (x2 - x1 < 0.5) x2 = Math.min(LM.x1, x1 + 0.5), x1 = x2 - 0.5;
           if (y2 - y1 < 0.5) y2 = Math.min(LM.y1, y1 + 0.5), y1 = y2 - 0.5;
+          if (FP.Walls.isInner(st.place.type) && FP.Walls.overlapsCut(P, { x: x1, y: y1, w: x2 - x1, h: y2 - y1 })) { const lg = d.lastGhost; if (lg) { x1 = lg.x; y1 = lg.y; x2 = lg.x + lg.w; y2 = lg.y + lg.h; } else { x2 = x1 + 0.5; y2 = y1 + 0.5; } }
           ghost = { kind: 'room', type: st.place.type, x: x1, y: y1, w: x2 - x1, h: y2 - y1, custom: true };
+          d.lastGhost = ghost;
         } else updateGhost(w, e);
         requestRender(false);
         return;

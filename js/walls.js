@@ -49,6 +49,30 @@
     },
     outline: (project) => Walls.footprint(project).outline,
 
+    /** ¿Este tipo de habitación debe quedarse dentro de los muros de la casa? (balcón, terraza y cochera pueden salir) */
+    isInner: (type) => type !== 'balcon' && type !== 'terraza' && type !== 'cochera',
+    /** ¿El rectángulo invade alguna zona recortada (fuera de los muros de la casa)? */
+    overlapsCut(project, r) {
+      return Walls.cuts(project).some((c) => r.x < c.x + c.w - 0.005 && r.x + r.w > c.x + 0.005 && r.y < c.y + c.h - 0.005 && r.y + r.h > c.y + 0.005);
+    },
+    /** Empuja un rectángulo fuera de las zonas recortadas por el camino más corto. Devuelve {x,y} o null si no cabe. */
+    pushOut(project, r) {
+      const W = project.space.w, H = project.space.h, cuts = Walls.cuts(project);
+      let x = r.x, y = r.y;
+      for (let it = 0; it < 8; it++) {
+        const c = cuts.find((q) => x < q.x + q.w - 0.005 && x + r.w > q.x + 0.005 && y < q.y + q.h - 0.005 && y + r.h > q.y + 0.005);
+        if (!c) return { x, y };
+        const opts = [[c.x - (x + r.w), 0], [c.x + c.w - x, 0], [0, c.y - (y + r.h)], [0, c.y + c.h - y]]
+          .filter(([dx, dy]) => x + dx >= -1e-6 && x + dx + r.w <= W + 1e-6 && y + dy >= -1e-6 && y + dy + r.h <= H + 1e-6)
+          .sort((a, b) => Math.abs(a[0] + a[1]) - Math.abs(b[0] + b[1]));
+        if (!opts.length) return null;
+        x += opts[0][0]; y += opts[0][1];
+      }
+      return null;
+    },
+    /** ¿El punto cae dentro de la huella de la casa? */
+    inside(project, x, y) { return Walls.footprint(project).cells.some((c) => x >= c.x - 1e-6 && x <= c.x + c.w + 1e-6 && y >= c.y - 1e-6 && y <= c.y + c.h + 1e-6); },
+
     /** Polígono de ángulos rectos (puntos en metros, ≥ 0) -> { w, h, cuts }: la base es la caja que lo contiene y los recortes son lo que queda fuera. */
     shapeToSpace(pts) {
       if (!pts || pts.length < 4) return null;

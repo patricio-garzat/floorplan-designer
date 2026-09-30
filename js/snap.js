@@ -10,13 +10,13 @@
   function targets(project, exclude, mode) {
     const ex = exclude || new Set(), W = project.space.w, H = project.space.h, xs = [], ys = [];
     const furn = mode === 'furn';
-    if (furn) {
-      xs.push({ v: T_OUT, k: 'lo', a: 0, b: H }, { v: W - T_OUT, k: 'hi', a: 0, b: H });
-      ys.push({ v: T_OUT, k: 'lo', a: 0, b: W }, { v: H - T_OUT, k: 'hi', a: 0, b: W });
-    } else {
-      xs.push({ v: 0, k: 'any', a: 0, b: H }, { v: W, k: 'any', a: 0, b: H });
-      ys.push({ v: 0, k: 'any', a: 0, b: W }, { v: H, k: 'any', a: 0, b: W });
-    }
+    // muros exteriores reales (también en formas dibujadas): los muebles quedan del lado de adentro
+    FP.Walls.footprint(project).outline.forEach((s) => {
+      const vert = Math.abs(s.x1 - s.x2) < 1e-6, mx = (s.x1 + s.x2) / 2, my = (s.y1 + s.y2) / 2;
+      if (!furn) { (vert ? xs : ys).push(vert ? { v: s.x1, k: 'any', a: s.y1, b: s.y2 } : { v: s.y1, k: 'any', a: s.x1, b: s.x2 }); return; }
+      if (vert) { const right = FP.Walls.inside(project, s.x1 + 0.05, my); xs.push({ v: s.x1 + (right ? T_OUT : -T_OUT), k: right ? 'lo' : 'hi', a: s.y1, b: s.y2 }); }
+      else { const below = FP.Walls.inside(project, mx, s.y1 + 0.05); ys.push({ v: s.y1 + (below ? T_OUT : -T_OUT), k: below ? 'lo' : 'hi', a: s.x1, b: s.x2 }); }
+    });
     const vline = (x, a, b) => {
       if (furn) xs.push({ v: x + T_IN, k: 'lo', a, b }, { v: x - T_IN, k: 'hi', a, b });
       else xs.push({ v: x, k: 'any', a, b });

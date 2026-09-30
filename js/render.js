@@ -86,8 +86,23 @@
       s += measures(project, px);
       // cotas exteriores
       if (o.showDims) {
-        s += FP.Measure.dim(0, 0, W, 0, -0.6, U.fmt(W) + ' m', px, { bold: 1, fs: 12, color: '#3a3a3f' });
-        s += FP.Measure.dim(0, 0, 0, H, 0.6, U.fmt(H) + ' m', px, { bold: 1, fs: 12, color: '#3a3a3f' });
+        const shaped = (project.space.cuts || []).length > 0;
+        if (shaped) { // forma propia: cota en cada tramo del muro exterior (por fuera) y las medidas totales más lejos
+          FP.Walls.outline(project).forEach((g) => {
+            const L = Math.hypot(g.x2 - g.x1, g.y2 - g.y1);
+            if (L < 0.3) return;
+            const dx = g.x2 - g.x1, dy = g.y2 - g.y1, nx = -dy / L, ny = dx / L, mx = (g.x1 + g.x2) / 2, my = (g.y1 + g.y2) / 2;
+            const out = FP.Walls.inside(project, mx + nx * 0.06, my + ny * 0.06) ? -1 : 1;
+            s += FP.Measure.dim(g.x1, g.y1, g.x2, g.y2, 0.55 * out, U.fmt(L) + ' m', px, { bold: 1, fs: 11.5, color: '#3a3a3f' });
+          });
+          // medidas totales solo si ningún tramo ya cubre todo el ancho / alto
+          const ol = FP.Walls.outline(project), full = (a) => ol.some((g) => Math.abs(g.x1 - g.x2) > 1e-6 === a && Math.hypot(g.x2 - g.x1, g.y2 - g.y1) > (a ? W : H) - 0.02);
+          if (!full(true)) s += FP.Measure.dim(0, 0, W, 0, -1.5, U.fmt(W) + ' m', px, { fs: 11, color: '#8a8a93' });
+          if (!full(false)) s += FP.Measure.dim(0, 0, 0, H, 1.5, U.fmt(H) + ' m', px, { fs: 11, color: '#8a8a93' });
+        } else {
+          s += FP.Measure.dim(0, 0, W, 0, -0.6, U.fmt(W) + ' m', px, { bold: 1, fs: 12, color: '#3a3a3f' });
+          s += FP.Measure.dim(0, 0, 0, H, 0.6, U.fmt(H) + ' m', px, { bold: 1, fs: 12, color: '#3a3a3f' });
+        }
       }
       return s;
     },
