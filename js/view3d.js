@@ -446,6 +446,7 @@
       frameBlack: mat('#18181b', { roughness: 0.4 }), frameOak: wood('#f0dcb8', 0.5), frameWhite: mat('#f4f2ee', { roughness: 0.4 }), paper: mat('#fbf9f4', { roughness: 0.9 }),
       artMat: (style, seed, aspect) => { const k = style + seed + aspect.toFixed(2); return artCache[k] || (artCache[k] = new THREE.MeshStandardMaterial({ map: artTexture(style, seed, aspect), roughness: 0.55, envMapIntensity: 0.35, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); },
     };
+    M.panelMesh = (w, h, tex, color) => { const wm = wallMat({ tex, color: color || '#ffffff' }); return new THREE.Mesh(wallPlane(w, h, wm.tile, 0, 0), wm.mat); };
     initTV();
     M.tvScreen = new THREE.MeshBasicMaterial({ map: tv.tex, toneMapped: false });
     FP.Models.init(M);
@@ -1222,7 +1223,7 @@
       });
       return { x1: s.x1, y1: s.y1, dx, dz, L, h: s.t / 2, cuts };
     });
-    return { segs, furn: P.furniture.filter((f) => f.key !== 'tv' && !f.key.startsWith('art_')) };
+    return { segs, furn: P.furniture.filter((f) => !['tv', 'pendant', 'fan'].includes(f.key) && !f.key.startsWith('art_')) };
   }
   function blocked(x, z) {
     if (walk.noclip) return false;
