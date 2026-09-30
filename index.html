@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Simple Floor Plan Designer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" data-mode="plan">
+    <header id="topbar">
+      <div class="brand" title="Simple Floor Plan Designer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V3h18v18z"/><path d="M3 12h9v9M12 3v5M16 12h5"/></svg>
+      </div>
+      <div class="title">
+        <input id="projName" spellcheck="false" maxlength="60" aria-label="Nombre del proyecto" placeholder="Mi plano">
+        <span id="projArea" class="chip-area"></span>
+        <span id="saveState" class="save-state"></span>
+      </div>
+      <div class="seg" id="modeSeg">
+        <button data-mode="plan" class="on">Plano</button>
+        <button data-mode="pres">Presentación</button>
+        <button data-mode="3d">3D</button>
+      </div>
+      <div class="actions">
+        <button class="ib" id="btnUndo" title="Deshacer (Ctrl/Cmd+Z)"></button>
+        <button class="ib" id="btnRedo" title="Rehacer (Ctrl/Cmd+Shift+Z)"></button>
+        <span class="sep"></span>
+        <button class="tb" id="btnProjects" title="Mis proyectos"><span>Proyectos</span></button>
+        <button class="tb" id="btnSave" title="Guardar (Ctrl/Cmd+S)"><span>Guardar</span></button>
+        <button class="tb" id="btnRandom" title="Generar un diseño aleatorio"><span>Aleatorio</span></button>
+        <div class="menu-wrap">
+          <button class="tb primary" id="btnExport"><span>Exportar</span></button>
+          <div id="exportMenu" class="menu">
+            <button data-exp="png"><b>PNG</b><small>Imagen del plano</small></button>
+            <button data-exp="svg"><b>SVG</b><small>Vectorial, editable</small></button>
+            <button data-exp="pdf"><b>PDF</b><small>Lámina con escala y fecha</small></button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <nav id="toolbar" aria-label="Herramientas"></nav>
+
+    <main id="stageWrap">
+      <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="view3d"></div>
+      <div id="load3d" hidden>Cargando vista 3D…</div>
+      <div id="flyout"></div>
+      <button id="walkBtn" class="walk-btn"><span>Recorrer la casa</span></button>
+      <button id="walkExit" class="walk-exit">Salir · Esc</button>
+      <button id="walkClip" class="walk-clip" title="Tecla C"></button>
+      <div id="crosshair"></div>
+      <canvas id="minimap" width="200" height="150"></canvas>
+      <div id="hint"></div>
+      <button id="shotBtn" class="shot-btn"><span>Capturar · Espacio</span></button>
+      <div id="flash"></div>
+      <div id="shots" class="shots"><div class="shots-head"><b id="shotsN"></b><span><button data-a="all">Descargar todas</button><button data-a="clear">Vaciar</button></span></div><div class="shots-row"></div></div>
+      <div class="corner-left">
+        <button class="tg on" id="tgDims" title="Mostrar/ocultar medidas"><span>Medidas</span></button>
+        <button class="tg on" id="tgGrid" title="Mostrar/ocultar cuadrícula"><span>Cuadrícula</span></button>
+        <button class="tg on" id="tgSnap" title="Imán inteligente (mantén Alt para desactivar)"><span>Imán</span></button>
+      </div>
+      <div class="corner-right">
+        <button class="ib sm" id="zoomOut" title="Alejar"></button>
+        <button class="ib sm" id="zoomIn" title="Acercar"></button>
+        <button class="ib sm" id="zoomFit" title="Ajustar a la pantalla"></button>
+      </div>
+    </main>
+
+    <aside id="panel"></aside>
+  </div>
+
+  <div id="start" class="overlay"></div>
+  <div id="projects" class="overlay"></div>
+  <div id="toast"></div>
+
+  <script src="js/core.js"></script>
+  <script src="js/furniture.js"></script>
+  <script src="js/catalog2.js"></script>
+  <script src="js/rooms.js"></script>
+  <script src="js/walls.js"></script>
+  <script src="js/openings.js"></script>
+  <script src="js/measure.js"></script>
+  <script src="js/snap.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/exporter.js"></script>
+  <script src="js/models3d.js"></script>
+  <script src="js/models3d2.js"></script>
+  <script src="assets/dvd-logo.js"></script>
+  <script src="js/view3d.js"></script>
+  <script src="js/actions.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/panel.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/shots.js"></script>
+  <script src="js/dialogs.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
