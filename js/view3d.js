@@ -880,13 +880,18 @@
         halo.position.set(dx, WALL_H - 0.06, dz); halo.scale.set(0.55, 0.55, 1);
         group.add(halo); dynamic.halos.push(halo);
       }
-      if (i < 10) {
-        const pl = new THREE.PointLight(0xffffff, 1, Math.max(r.w, r.h) * 1.9 + 2, 1.7);
-        pl.position.set(r.x + r.w / 2, WALL_H - 0.35, r.y + r.h / 2);
-        pl.userData.k = Math.min(1.4, 0.6 + (r.w * r.h) / 30);
+      // luces reales repartidas por el techo (2-4 según el tamaño); hay un tope global para no saturar la GPU
+      const area = r.w * r.h, want = area < 9 ? 1 : area < 22 ? 2 : area < 40 ? 3 : 4;
+      const nx = want >= 3 ? 2 : want, ny = want === 4 ? 2 : want === 3 ? 2 : 1, spots = [];
+      for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) spots.push([r.x + (r.w * (a + 0.5)) / nx, r.y + (r.h * (b + 0.5)) / ny]);
+      spots.slice(0, want).forEach(([lx, lz]) => {
+        if (dynamic.lamps.length >= 16) return;
+        const pl = new THREE.PointLight(0xffffff, 1, Math.max(4.2, Math.min(7, Math.max(r.w / nx, r.h / ny) * 1.9 + 1.5)), 1.5);
+        pl.position.set(lx, WALL_H - 0.35, lz);
+        pl.userData.k = want === 1 ? 1.0 : 0.72;
         group.add(pl);
         dynamic.lamps.push(pl);
-      }
+      });
     });
 
     // techo en TODA la casa (toda la huella) y luces también donde no hay habitaciones
@@ -904,7 +909,7 @@
         const x = c.x + (c.w * (a + 0.5)) / nx, z = c.y + (c.h * (b + 0.5)) / ny;
         if (inRoom(x, z)) continue;
         group.add(mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.012, 20), em2, x, WALL_H - 0.012, z, false, false));
-        if (extra < 5 && (a + b) % 2 === 0) {
+        if (extra < 3 && dynamic.lamps.length < 16 && (a + b) % 2 === 0) {
           const pl = new THREE.PointLight(0xffffff, 1, 6, 1.7);
           pl.position.set(x, WALL_H - 0.35, z);
           pl.userData.k = 0.8;
