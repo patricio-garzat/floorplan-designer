@@ -65,6 +65,13 @@
   /* ---------- hit test ---------- */
   function hitTest(w) {
     const P = st.project, tol = 6 / st.view.s;
+    // cuadros y cortinas van sobre puertas/ventanas: tienen prioridad al hacer clic
+    for (let i = P.furniture.length - 1; i >= 0; i--) {
+      const f = P.furniture[i];
+      if (!f.key.startsWith('art_')) continue;
+      const l = G.toLocal(f, w), t = tol * 0.4;
+      if (Math.abs(l.x) <= f.w / 2 + t && Math.abs(l.y) <= Math.max(f.h / 2, 0.06) + t) return { id: f.id, coll: 'furniture' };
+    }
     for (let i = P.openings.length - 1; i >= 0; i--) {
       const o = P.openings[i], l = G.toLocal(o, w);
       if (Math.abs(l.x) <= o.w / 2 + tol && Math.abs(l.y) <= 0.14 + tol) return { id: o.id, coll: 'openings' };
