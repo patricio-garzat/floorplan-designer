@@ -697,10 +697,12 @@
   /** Hoja de puerta con origen en la bisagra; se extiende hacia +x (dir). Diseños: wood, oak_slat, white, shaker, flush, black, glass, french. */
   function doorSlab(len, dir, o) {
     const fin = o.finish || 'wood', L = new THREE.Group(), H = 2.02, col = o.color || '#f6f4f0';
-    const painted = fin === 'white' || fin === 'shaker' || fin === 'flush';
+    const painted = fin === 'white' || fin === 'shaker' || fin === 'flush', custom = !!o.color && o.color.toLowerCase() !== '#f6f4f0';
+    // el color elegido tiñe cualquier acabado: pintura, madera (se mezcla con la veta), negra y marcos de aluminio
+    const tinted = (m) => { if (!custom) return m; const k = 'tint' + m.uuid + col; return matCache[k] || (matCache[k] = Object.assign(m.clone(), { color: C(col) })); };
     const add = (w, h, d, m, x, y, z) => { L.add(bx(w, h, d, m, dir * x, y, z, false)); };
     const glass = fin === 'glass' || fin === 'french';
-    if (!glass) add(len, H, 0.04, painted ? paintMat(col) : fin === 'black' ? M.doorBlack : fin === 'oak_slat' ? M.walnut : M.doorWoodTex, len / 2, H / 2 + 0.005, 0);
+    if (!glass) add(len, H, 0.04, painted ? paintMat(col) : fin === 'black' ? (custom ? paintMat(col) : M.doorBlack) : fin === 'oak_slat' ? tinted(M.walnut) : tinted(M.doorWoodTex), len / 2, H / 2 + 0.005, 0);
     if (fin === 'white') {
       const cw = (len - 0.24) / 2;
       [[0.15, 0.5], [0.75, 0.42], [1.25, 0.6]].forEach(([y, h]) => [0, 1].forEach((i) => add(cw, h, 0.05, paintMat(col), 0.09 + cw / 2 + i * (cw + 0.06), y + h / 2, 0)));
@@ -715,12 +717,12 @@
       });
     } else if (fin === 'oak_slat') {
       const n = Math.floor((len - 0.04) / 0.075);
-      for (let i = 0; i < n; i++) [-1, 1].forEach((sd) => add(0.058, H - 0.05, 0.02, M.oak, 0.03 + i * 0.075 + 0.03, H / 2 + 0.005, sd * 0.02));
+      for (let i = 0; i < n; i++) [-1, 1].forEach((sd) => add(0.058, H - 0.05, 0.02, tinted(M.oak), 0.03 + i * 0.075 + 0.03, H / 2 + 0.005, sd * 0.02));
     } else if (fin === 'wood') add(0.006, H - 0.2, 0.042, M.walnut, len * 0.5, H / 2 + 0.005, 0);
     else if (fin === 'glass') {
-      const fr = 0.06;
-      add(len, fr, 0.045, M.alu, len / 2, H - fr / 2, 0); add(len, fr, 0.045, M.alu, len / 2, fr / 2 + 0.005, 0);
-      add(fr, H, 0.045, M.alu, fr / 2, H / 2 + 0.005, 0); add(fr, H, 0.045, M.alu, len - fr / 2, H / 2 + 0.005, 0);
+      const fr = 0.06, am = custom ? paintMat(col) : M.alu;
+      add(len, fr, 0.045, am, len / 2, H - fr / 2, 0); add(len, fr, 0.045, am, len / 2, fr / 2 + 0.005, 0);
+      add(fr, H, 0.045, am, fr / 2, H / 2 + 0.005, 0); add(fr, H, 0.045, am, len - fr / 2, H / 2 + 0.005, 0);
       add(len - fr * 2, H - fr * 2, 0.012, mat('#e8f0f4', { transparent: true, opacity: 0.5, roughness: 0.2, depthWrite: false }), len / 2, H / 2 + 0.005, 0);
     } else if (fin === 'french') {
       const fr = 0.07, fm = paintMat(col);
