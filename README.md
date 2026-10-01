@@ -75,5 +75,5 @@ Para añadir un mueble: agrega una entrada en `ITEMS` y en `CATS` de `js/furnitu
 
 - **Niveles**: la barra sobre el lienzo (`+ Nivel`) agrega plantas vacías (con la forma de abajo) o duplica la actual. Doble clic en un nivel para renombrarlo. El nivel de abajo se ve tenue como guía.
 - **Escaleras** (categoría *Escaleras*): recta, en L y de caracol. Suben al nivel de arriba y le abren el hueco al piso, con barandal.
-- **3D**: muestra todos los niveles apilados; "Hasta este nivel" deja ver por dentro. En el recorrido, `Re Pág` / `Av Pág` (o los botones) suben y bajan de nivel.
+- **3D**: muestra todos los niveles apilados; "Hasta este nivel" deja ver por dentro. En el recorrido caminas sobre las escaleras para subir y bajar; `Re Pág` / `Av Pág` (o los botones) saltan de nivel directo.
 - **Forma de la casa**: herramienta *Base → Dibujar la forma con líneas* (o "Dibujar mi forma" en la pantalla inicial). Las líneas salen rectas (ángulos de 90°), así que sirve para L, U, T, escalonadas, etc.

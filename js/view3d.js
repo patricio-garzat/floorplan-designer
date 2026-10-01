@@ -1294,7 +1294,7 @@
     controls.update();
   }
   /* ---------- recorrido en primera persona ---------- */
-  const walk = { noclip: true, on: false, x: 0, z: 0, yaw: 0, pitch: 0, keys: {}, look: null, move: null, cols: null, level: 0, P: null };
+  const walk = { noclip: true, on: false, x: 0, z: 0, yaw: 0, pitch: 0, keys: {}, look: null, move: null, cols: null, level: 0, P: null, elev: 0, stairs: [] };
   const R_BODY = 0.24, EYE = 1.6;
 
   function colliders(P) {
@@ -1307,7 +1307,7 @@
       });
       return { x1: s.x1, y1: s.y1, dx, dz, L, h: s.t / 2, cuts };
     });
-    return { segs, furn: P.furniture.filter((f) => !['tv', 'pendant', 'fan'].includes(f.key) && !FP.Lamps.NOBLOCK.has(f.key) && !f.key.startsWith('art_')) };
+    return { segs, furn: P.furniture.filter((f) => !['tv', 'pendant', 'fan'].includes(f.key) && !FP.Lamps.NOBLOCK.has(f.key) && !f.key.startsWith('stairs') && !f.key.startsWith('art_')) };
   }
   function blocked(x, z) {
     if (walk.noclip) return false;
@@ -1328,6 +1328,40 @@
     }
     return false;
   }
+  /** Avance (0 = abajo, 1 = arriba) de quien pisa una escalera en el punto local l; null si no la está pisando. */
+  function stairProgress(f, l) {
+    const w = f.w, h = f.h;
+    if (f.key === 'stairs_straight') return Math.abs(l.x) <= w / 2 && Math.abs(l.y) <= h / 2 ? Math.max(0, Math.min(1, (h / 2 - l.y) / h)) : null;
+    if (f.key === 'stairs_L') {
+      const b = 0.95, steps = 16;
+      if (Math.abs(l.x) > w / 2 || Math.abs(l.y) > h / 2) return null;
+      if (l.x < -w / 2 + b) return l.y > -h / 2 + b ? (7 * Math.max(0, Math.min(1, (h / 2 - l.y) / (h - b)))) / steps : 8 / steps;
+      return l.y <= -h / 2 + b ? (8 + 8 * Math.min(1, (l.x + w / 2 - b) / (w - b))) / steps : null;
+    }
+    if (f.key === 'stairs_spiral') {
+      const r = Math.hypot(l.x, l.y);
+      if (r > w / 2 || r < 0.08) return null;
+      const sw = (((Math.atan2(l.y, l.x) - 0.4) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 1.85);
+      return sw <= 1 ? sw : sw - 1 < (Math.PI * 2 / (Math.PI * 1.85) - 1) / 2 ? 1 : 0;
+    }
+    return null;
+  }
+  function stairTarget(x, z) {
+    for (const st_ of walk.stairs) {
+      const lo = st_.j * LEVEL_H, hi = (st_.j + 1) * LEVEL_H;
+      if (walk.elev < lo - 0.35 || walk.elev > hi + 0.35) continue;
+      const l = FP.geom.toLocal(st_.f, { x, y: z });
+      if (st_.f.mirror) l.x = -l.x;
+      const pr = stairProgress(st_.f, l);
+      if (pr != null) return lo + pr * LEVEL_H;
+    }
+    return Math.round(walk.elev / LEVEL_H) * LEVEL_H;
+  }
+  function collectStairs() {
+    const P = FP.state.project;
+    walk.stairs = [];
+    FP.Levels.views(P).forEach((v, j) => v.furniture.forEach((f) => { if (f.key.startsWith('stairs')) walk.stairs.push({ j, f }); }));
+  }
   function updateWalk(dt) {
     const k = walk.keys, run = k.ShiftLeft || k.ShiftRight ? 2.1 : 1;
     let fw = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0), st_ = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0);
@@ -1343,7 +1377,11 @@
       else if (!blocked(walk.x, walk.z + dz)) walk.z += dz;
     }
     const bob = len > 0.01 ? Math.sin(performance.now() / 170 * run) * 0.012 : 0;
-    camera.position.set(walk.x, EYE + bob + walk.level * LEVEL_H, walk.z);
+    // sube y baja escaleras: la altura sigue el perfil de la escalera que pisas; el nivel cambia a la mitad
+    walk.elev += (stairTarget(walk.x, walk.z) - walk.elev) * Math.min(1, dt * 14);
+    const nLv = FP.Levels.count(FP.state.project), lv = Math.max(0, Math.min(nLv - 1, Math.round(walk.elev / LEVEL_H)));
+    if (lv !== walk.level) { walk.level = lv; walk.P = FP.Levels.view(FP.state.project, lv); walk.cols = colliders(walk.P); syncWalkLevelUI(); }
+    camera.position.set(walk.x, EYE + bob + walk.elev, walk.z);
     camera.rotation.set(walk.pitch, walk.yaw, 0, 'YXZ');
   }
   function drawMap() {
@@ -1366,7 +1404,7 @@
     const P = FP.state.project;
     if (!ready || !active) { FP.View3D.show().then((ok) => { if (ok) startWalk(); }); return; }
     if (walk.on) return;
-    walk.level = FP.Levels.cur(P); walk.P = P;
+    walk.level = FP.Levels.cur(P); walk.P = P; walk.elev = walk.level * LEVEL_H; collectStairs();
     walk.cols = colliders(walk.P);
     syncWalkLevelUI();
     const W = P.space.w, H = P.space.h;
@@ -1398,7 +1436,7 @@
     if (!walk.on) return;
     const P = FP.state.project, n = FP.Levels.count(P), nl = Math.max(0, Math.min(n - 1, walk.level + d));
     if (nl === walk.level) return;
-    walk.level = nl;
+    walk.level = nl; walk.elev = nl * LEVEL_H;
     walk.P = FP.Levels.view(P, nl);
     walk.cols = colliders(walk.P);
     syncWalkLevelUI();
@@ -1504,7 +1542,7 @@
     walkLevel, applyLevelVis,
     startWalk, stopWalk, isWalking: () => walk.on, setNoclip, toggleNoclip: () => setNoclip(!walk.noclip),
     refit() { if (ready) fitCamera(FP.state.project); },
-    rebuild() { if (ready && active) { build(FP.state.project); if (walk.on) { const P = FP.state.project; walk.level = Math.min(walk.level, FP.Levels.count(P) - 1); walk.P = FP.Levels.view(P, walk.level); walk.cols = colliders(walk.P); syncWalkLevelUI(); } } },
+    rebuild() { if (ready && active) { build(FP.state.project); if (walk.on) { const P = FP.state.project; walk.level = Math.min(walk.level, FP.Levels.count(P) - 1); walk.elev = Math.min(walk.elev, walk.level * LEVEL_H + 0.5); collectStairs(); walk.P = FP.Levels.view(P, walk.level); walk.cols = colliders(walk.P); syncWalkLevelUI(); } } },
     setLight(name) { if (ready && LIGHTS[name]) { applyLight(name, FP.state.project); } else lightName = name; FP.emit('light'); },
   };
   // al abrir otro proyecto: salir del recorrido y reconstruir la escena 3D (si no, se seguiría viendo el anterior)
