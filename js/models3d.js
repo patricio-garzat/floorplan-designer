@@ -137,7 +137,6 @@
     box(g, cwid - 0.24, 0.16, cwid - 0.2, M.cushion, w / 2 - cwid / 2 - 0.02, 0.3, -d / 2 + 0.2 + (cwid - 0.2) / 2, 0.06);
     box(g, cwid - 0.24, 0.16, d - cwid - 0.05, M.cushion, w / 2 - cwid / 2 - 0.02, 0.3, -d / 2 + cwid + (d - cwid) / 2 - 0.02, 0.06);
     const p = box(g, 0.42, 0.42, 0.12, M.accent, -w / 2 + 0.5, 0.48, -d / 2 + 0.4, 0.06); p.rotation.set(-0.35, 0.3, 0);
-    box(g, 2.2, 0.012, 1.6, M.rug, -0.2, 0, d / 2 + 0.55, 0.02);
     return g;
   };
   B.armchair = (w, d) => {
@@ -157,7 +156,6 @@
     legs(g, w, d, 0.36, M.brass, 0.06, 0.012);
     cyl(g, 0.11, 0.04, M.ceramic, -w * 0.2, 0.42, 0, 0.09); sph(g, 0.06, M.leaf2, -w * 0.2, 0.5, 0, 1.2, 0.8, 1.2);
     box(g, 0.28, 0.025, 0.2, M.accent, w * 0.2, 0.42, 0.02, 0.01).rotation.y = 0.3;
-    box(g, w + 0.9, 0.012, d + 0.8, M.rug2, 0, 0, 0, 0.02);
     return g;
   };
   B.tv = (w, d) => {
