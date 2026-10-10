@@ -1399,7 +1399,7 @@
     const px = ox + walk.x * sc, py = oy + walk.z * sc;
     g.save(); g.translate(px, py); g.rotate(-walk.yaw);
     g.fillStyle = 'rgba(47,109,246,.25)'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 34, -Math.PI / 2 - 0.6, -Math.PI / 2 + 0.6); g.closePath(); g.fill();
-    g.fillStyle = '#2f6df6'; g.beginPath(); g.arc(0, 0, 4.5, 0, 7); g.fill(); g.restore();
+    g.fillStyle = '#4a6cf7'; g.beginPath(); g.arc(0, 0, 4.5, 0, 7); g.fill(); g.restore();
   }
 
   function startWalk() {

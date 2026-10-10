@@ -3,18 +3,77 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Simple Floor Plan Designer</title>
+  <title>Floorplan Designer · Diseña tu espacio a escala</title>
+  <meta name="description" content="Diseña planos de casas y departamentos a escala real, con vista 3D, recorrido en primera persona y muebles.">
+  <meta name="theme-color" content="#0e1230">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <meta property="og:title" content="Floorplan Designer">
+  <meta property="og:description" content="Diseña tu casa o departamento a escala real: plano, 3D y recorrido.">
+  <meta property="og:image" content="https://floorplandesigner.netlify.app/assets/og-image.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://floorplandesigner.netlify.app/">
+  <meta name="twitter:card" content="summary_large_image">
+  <script>document.documentElement.classList.add('splash-on');</script>
+  <noscript><style>#splash{display:none!important}html.splash-on #topbar .brand{visibility:visible!important}</style></noscript>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260930w">
+  <link rel="stylesheet" href="css/style.css?v=20261010c">
 </head>
 <body>
+  <div id="splash" aria-hidden="true">
+    <div class="sp-bg"></div>
+    <div class="sp-grid"></div>
+    <div class="sp-center">
+      <div class="sp-flight"><div class="sp-mark">
+<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Floorplan Designer">
+<defs>
+<linearGradient id="bsg" x1="8" y1="4" x2="88" y2="92" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4f7cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+<linearGradient id="bsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<g class="m-fill"><rect x="2" y="2" width="92" height="92" rx="26" fill="url(#bsg)"/><rect x="2" y="2" width="92" height="92" rx="26" fill="url(#bsh)"/></g>
+<rect class="m-ol dr" pathLength="1" x="2" y="2" width="92" height="92" rx="26" fill="none"/>
+<g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path class="p-w1 dr" pathLength="1" d="M42 75H24V31H72V43"/>
+<path class="p-w2 dr" pathLength="1" d="M72 59V75H58"/>
+<path class="p-in dr" pathLength="1" d="M50 31V53H72"/>
+</g>
+<g fill="none" stroke-linecap="round">
+<path class="p-win dr" pathLength="1" d="M72 43V59" stroke="#5ee6ff" stroke-width="4"/>
+<path class="p-door dr" pathLength="1" d="M42 75V59" stroke="#fff" stroke-width="3"/>
+<path class="p-arc dr" pathLength="1" d="M42 59A16 16 0 0 1 58 75" stroke="#fff" stroke-opacity=".72" stroke-width="2.4"/>
+<path class="p-dim dr" pathLength="1" d="M24 20H72M24 16V24M72 16V24" stroke="#5ee6ff" stroke-width="2.6"/>
+</g>
+</svg>
+      </div></div>
+      <div class="sp-word"><span class="w1"><span class="l" style="--i:0">F</span><span class="l" style="--i:1">l</span><span class="l" style="--i:2">o</span><span class="l" style="--i:3">o</span><span class="l" style="--i:4">r</span><span class="l" style="--i:5">p</span><span class="l" style="--i:6">l</span><span class="l" style="--i:7">a</span><span class="l" style="--i:8">n</span></span> <span class="w2"><span class="l" style="--i:9">D</span><span class="l" style="--i:10">e</span><span class="l" style="--i:11">s</span><span class="l" style="--i:12">i</span><span class="l" style="--i:13">g</span><span class="l" style="--i:14">n</span><span class="l" style="--i:15">e</span><span class="l" style="--i:16">r</span></span></div>
+      <div class="sp-tag">Diseña tu espacio a escala</div>
+    </div>
+  </div>
   <div id="app" data-mode="plan">
     <header id="topbar">
-      <div class="brand" title="Simple Floor Plan Designer">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V3h18v18z"/><path d="M3 12h9v9M12 3v5M16 12h5"/></svg>
+      <div class="brand" title="Floorplan Designer">
+<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Floorplan Designer">
+<defs>
+<linearGradient id="bhg" x1="8" y1="4" x2="88" y2="92" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4f7cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+<linearGradient id="bhh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<g class="m-fill"><rect x="2" y="2" width="92" height="92" rx="26" fill="url(#bhg)"/><rect x="2" y="2" width="92" height="92" rx="26" fill="url(#bhh)"/></g>
+<g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path class="p-w1" d="M42 75H24V31H72V43"/>
+<path class="p-w2" d="M72 59V75H58"/>
+<path class="p-in" d="M50 31V53H72"/>
+</g>
+<g fill="none" stroke-linecap="round">
+<path class="p-win" d="M72 43V59" stroke="#5ee6ff" stroke-width="4"/>
+<path class="p-door" d="M42 75V59" stroke="#fff" stroke-width="3"/>
+<path class="p-arc" d="M42 59A16 16 0 0 1 58 75" stroke="#fff" stroke-opacity=".72" stroke-width="2.4"/>
+<path class="p-dim" d="M24 20H72M24 16V24M72 16V24" stroke="#5ee6ff" stroke-width="2.6"/>
+</g>
+</svg>
       </div>
+      <div class="wordmark" aria-hidden="true">Floorplan <em>Designer</em></div>
       <div class="title">
         <input id="projName" spellcheck="false" maxlength="60" aria-label="Nombre del proyecto" placeholder="Mi plano">
         <span id="projArea" class="chip-area"></span>
@@ -80,38 +139,40 @@
   <div id="projects" class="overlay"></div>
   <div id="toast"></div>
 
-  <script src="js/core.js?v=20260930w"></script>
-  <script src="js/levels.js?v=20260930w"></script>
-  <script src="js/furniture.js?v=20260930w"></script>
-  <script src="js/catalog2.js?v=20260930w"></script>
-  <script src="js/catalog3.js?v=20260930w"></script>
-  <script src="js/rooms.js?v=20260930w"></script>
-  <script src="js/walls.js?v=20260930w"></script>
-  <script src="js/openings.js?v=20260930w"></script>
-  <script src="js/measure.js?v=20260930w"></script>
-  <script src="js/snap.js?v=20260930w"></script>
-  <script src="js/render.js?v=20260930w"></script>
-  <script src="js/storage.js?v=20260930w"></script>
-  <script src="js/exporter.js?v=20260930w"></script>
-  <script src="js/models3d.js?v=20260930w"></script>
-  <script src="js/models3d2.js?v=20260930w"></script>
-  <script src="js/models3d3.js?v=20260930w"></script>
-  <script src="js/people.js?v=20260930w"></script>
-  <script src="js/garden.js?v=20260930w"></script>
-  <script src="js/lamps.js?v=20260930w"></script>
-  <script src="js/games.js?v=20260930w"></script>
-  <script src="js/stairs.js?v=20260930w"></script>
-  <script src="js/cars.js?v=20260930w"></script>
-  <script src="assets/dvd-logo.js?v=20260930w"></script>
-  <script src="js/view3d.js?v=20260930w"></script>
-  <script src="js/levelbar.js?v=20260930w"></script>
-  <script src="js/actions.js?v=20260930w"></script>
-  <script src="js/editor.js?v=20260930w"></script>
-  <script src="js/ui.js?v=20260930w"></script>
-  <script src="js/panel.js?v=20260930w"></script>
-  <script src="js/generator.js?v=20260930w"></script>
-  <script src="js/shots.js?v=20260930w"></script>
-  <script src="js/dialogs.js?v=20260930w"></script>
-  <script src="js/main.js?v=20260930w"></script>
+  <script src="js/core.js?v=20261010c"></script>
+  <script src="js/brand.js?v=20261010c"></script>
+  <script src="js/levels.js?v=20261010c"></script>
+  <script src="js/furniture.js?v=20261010c"></script>
+  <script src="js/catalog2.js?v=20261010c"></script>
+  <script src="js/catalog3.js?v=20261010c"></script>
+  <script src="js/rooms.js?v=20261010c"></script>
+  <script src="js/walls.js?v=20261010c"></script>
+  <script src="js/openings.js?v=20261010c"></script>
+  <script src="js/measure.js?v=20261010c"></script>
+  <script src="js/snap.js?v=20261010c"></script>
+  <script src="js/render.js?v=20261010c"></script>
+  <script src="js/storage.js?v=20261010c"></script>
+  <script src="js/exporter.js?v=20261010c"></script>
+  <script src="js/models3d.js?v=20261010c"></script>
+  <script src="js/models3d2.js?v=20261010c"></script>
+  <script src="js/models3d3.js?v=20261010c"></script>
+  <script src="js/people.js?v=20261010c"></script>
+  <script src="js/garden.js?v=20261010c"></script>
+  <script src="js/lamps.js?v=20261010c"></script>
+  <script src="js/games.js?v=20261010c"></script>
+  <script src="js/stairs.js?v=20261010c"></script>
+  <script src="js/cars.js?v=20261010c"></script>
+  <script src="assets/dvd-logo.js?v=20261010c"></script>
+  <script src="js/view3d.js?v=20261010c"></script>
+  <script src="js/levelbar.js?v=20261010c"></script>
+  <script src="js/actions.js?v=20261010c"></script>
+  <script src="js/editor.js?v=20261010c"></script>
+  <script src="js/ui.js?v=20261010c"></script>
+  <script src="js/panel.js?v=20261010c"></script>
+  <script src="js/generator.js?v=20261010c"></script>
+  <script src="js/shots.js?v=20261010c"></script>
+  <script src="js/dialogs.js?v=20261010c"></script>
+  <script src="js/main.js?v=20261010c"></script>
+  <script src="js/splash.js?v=20261010c"></script>
 </body>
 </html>

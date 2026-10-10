@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const FP = window.FP, U = FP.util, n = U.n;
-  const INK = '#1d1d1f', ACC = '#2f6df6';
+  const INK = '#1d1d1f', ACC = '#4a6cf7';
 
   function labels(project, p, px) {
     const scale = 1 / px;

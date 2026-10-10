@@ -330,3 +330,74 @@ kbd { background: var(--soft); border: 1px solid var(--line); border-bottom-widt
 .walk-lv span { text-align: center; font-size: 11.5px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
 
 .hint-s { color: var(--muted); font-size: 11.5px; margin: 8px 0 0; }
+
+/* =====================================================================
+   MARCA · Floorplan Designer
+   Azul-violeta (#4f7cff → #8b5cf6), cian de acento (#5ee6ff) y azul noche (#0e1230).
+   ===================================================================== */
+:root {
+  --brand-a: #4f7cff; --brand-b: #8b5cf6; --brand-cyan: #5ee6ff; --brand-ink: #0e1230;
+  --accent: #4a6cf7; --accent-soft: #eaeeff;
+  --grad: linear-gradient(135deg, var(--brand-a) 0%, var(--brand-b) 100%);
+}
+.brand { width: 36px; height: 36px; border-radius: 0; background: none; box-shadow: none; display: block; flex: none; }
+.brand svg { width: 36px; height: 36px; display: block; filter: drop-shadow(0 4px 10px rgba(91,92,255,.34)); }
+.wordmark { font-weight: 700; font-size: 16px; letter-spacing: -.025em; white-space: nowrap; color: var(--brand-ink); margin-left: -4px; }
+.wordmark em { font-style: normal; font-weight: 500; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#topbar { border-bottom: 1px solid var(--line); position: relative; }
+#topbar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, var(--brand-a), var(--brand-b) 45%, transparent 80%); opacity: .55; pointer-events: none; }
+.tb.primary { background: var(--brand-ink); color: #fff; }
+.tb.primary:hover { background: #1a2050; }
+#hint { background: rgba(14,18,48,.88); }
+.logo-lock { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.logo-lock svg { width: 54px; height: 54px; filter: drop-shadow(0 10px 22px rgba(91,92,255,.38)); }
+.logo-lock .wordmark { font-size: 21px; margin: 0; }
+html.splash-on #topbar .brand { visibility: hidden; }
+@media (max-width: 1180px) { #topbar .wordmark { display: none; } }
+
+/* ---------- animación de entrada ---------- */
+#splash { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; overflow: hidden; font-family: var(--font); cursor: pointer; }
+.sp-bg { position: absolute; inset: 0; background: radial-gradient(900px 620px at 50% 40%, #272e75 0%, #141842 46%, #0a0c24 100%); transition: opacity .8s ease .1s; }
+.sp-grid { position: absolute; inset: -6%; opacity: 0; animation: spGrid 1.6s .1s cubic-bezier(.2,.7,.2,1) forwards;
+  background-image: linear-gradient(rgba(130,150,255,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(130,150,255,.14) 1px, transparent 1px), linear-gradient(rgba(130,150,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(130,150,255,.05) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  -webkit-mask-image: radial-gradient(closest-side at 50% 44%, #000 18%, transparent 80%); mask-image: radial-gradient(closest-side at 50% 44%, #000 18%, transparent 80%); transition: opacity .6s ease; }
+@keyframes spGrid { from { opacity: 0; transform: scale(1.14); } to { opacity: 1; transform: scale(1); } }
+.sp-center { position: relative; display: flex; flex-direction: column; align-items: center; gap: 26px; transform: translateY(-2vh); }
+.sp-flight { width: 148px; height: 148px; will-change: transform; }
+.sp-mark { width: 100%; height: 100%; filter: drop-shadow(0 22px 44px rgba(91,92,255,.5)); animation: spSettle .9s 2.05s cubic-bezier(.3,1.5,.5,1) both; }
+.sp-mark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+@keyframes spSettle { 0% { transform: scale(1); } 45% { transform: scale(1.07); } 100% { transform: scale(1); } }
+.sp-mark .m-fill { opacity: 0; animation: spFade .7s .85s ease-out forwards; }
+@keyframes spFade { to { opacity: 1; } }
+.sp-mark .dr { stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0; animation: spDraw .62s var(--d, 0s) cubic-bezier(.55,.05,.2,1) forwards; }
+@keyframes spDraw { 0% { stroke-dashoffset: 1; opacity: 0; } 2% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+.sp-mark .m-ol { stroke: rgba(255,255,255,.75); stroke-width: 1.6; --d: .2s; animation: spDraw .85s .2s cubic-bezier(.55,.05,.2,1) forwards, spOl .5s 1.15s ease forwards; }
+@keyframes spOl { to { opacity: 0; } }
+.sp-mark .p-dim { --d: .85s; animation-duration: .6s; }
+.sp-mark .p-w1 { --d: 1.0s; animation-duration: .7s; }
+.sp-mark .p-w2 { --d: 1.2s; animation-duration: .45s; }
+.sp-mark .p-in { --d: 1.3s; animation-duration: .45s; }
+.sp-mark .p-win { --d: 1.55s; animation-duration: .3s; }
+.sp-mark .p-door { --d: 1.7s; transform-box: view-box; transform-origin: 42px 75px; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; animation: spSwing .62s 1.7s cubic-bezier(.3,.8,.25,1) both; }
+@keyframes spSwing { 0% { transform: rotate(90deg); opacity: 0; } 6% { opacity: 1; } 100% { transform: rotate(0); opacity: 1; } }
+.sp-mark .p-arc { --d: 1.7s; animation-duration: .62s; }
+.sp-word { font-size: 42px; line-height: 1; font-weight: 700; letter-spacing: -.03em; color: #fff; white-space: nowrap; transition: opacity .35s ease, transform .5s ease; }
+.sp-word .w2 { font-weight: 300; color: #aebaff; }
+.sp-word .l { display: inline-block; opacity: 0; transform: translateY(18px); filter: blur(7px); animation: spLetter .7s calc(2.0s + var(--i) * .04s) cubic-bezier(.2,.85,.2,1) forwards; }
+.sp-word .sp { display: inline-block; width: .28em; }
+@keyframes spLetter { to { opacity: 1; transform: none; filter: blur(0); } }
+.sp-tag { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; color: rgba(255,255,255,.55); opacity: 0; animation: spTag .8s 2.65s ease forwards; transition: opacity .3s ease; }
+@keyframes spTag { to { opacity: 1; } }
+/* salida: el fondo se desvanece y el símbolo vuela a la barra superior */
+#splash.sp-out { pointer-events: none; cursor: default; }
+#splash.sp-out .sp-bg, #splash.sp-out .sp-grid { opacity: 0; }
+#splash.sp-out .sp-word { opacity: 0; transform: translateY(8px); }
+#splash.sp-out .sp-tag { opacity: 0 !important; animation: none; }
+#splash.sp-out .sp-mark { animation: none; filter: drop-shadow(0 4px 10px rgba(91,92,255,.34)); transition: filter .9s ease; }
+@media (max-width: 520px) { .sp-word { font-size: 32px; } .sp-flight { width: 120px; height: 120px; } }
+@media (prefers-reduced-motion: reduce) {
+  .sp-grid, .sp-mark, .sp-mark .m-fill, .sp-mark .dr, .sp-mark .p-door, .sp-word .l, .sp-tag { animation: none !important; opacity: 1 !important; transform: none !important; filter: none !important; stroke-dashoffset: 0 !important; }
+  .sp-mark .m-ol { opacity: 0 !important; }
+}
+@media (max-width: 760px) { .brand { display: none; } }

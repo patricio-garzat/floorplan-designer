@@ -49,7 +49,7 @@
     let kind = 'departamento', touched = false, W = 10, H = 8;
     startEl.innerHTML = `
       <div class="start-card">
-        <div class="logo-big"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V3h18v18z"/><path d="M3 12h9v9M12 3v5M16 12h5"/></svg></div>
+        <div class="logo-lock">${FP.Brand.mark('bd')}<span class="wordmark">${FP.Brand.wordmark()}</span></div>
         <h1>Crea tu espacio</h1>
         <p class="sub">Diseña el plano de tu casa o departamento en minutos.</p>
         <div class="field-label">¿Qué quieres diseñar?</div>
